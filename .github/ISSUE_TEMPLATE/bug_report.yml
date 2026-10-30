@@ -1,0 +1,49 @@
+name: Bug report
+description: Report behavior that is incorrect, with the facts needed to reproduce it.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use a one-line title that captures the problem: "Cart loses items after login" rather than "Cart broken".
+        After creating the issue, add one `severity:` label and one `priority:` label.
+  - type: input
+    id: release
+    attributes:
+      label: Release
+      description: Commit hash, branch or tag where the problem occurs.
+      placeholder: dev @ 3f2a1bc
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, browser and any other relevant versions.
+      placeholder: Windows 11, Chrome 141
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The minimal steps that trigger the problem.
+      placeholder: |
+        1. Add a product to the cart as a guest
+        2. Log in
+        3. Open the cart
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What happened instead. Include error messages, logs or screenshots.
+    validations:
+      required: true
