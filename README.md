@@ -7,11 +7,11 @@ Team project for CS 308 Software Engineering (Sabancı University, Fall 2026–2
 | Member | GitHub | Scrum role |
 | --- | --- | --- |
 | Ahmet Ertekin | [@Methert](https://github.com/Methert) | TBD |
-| TBD | TBD | TBD |
-| TBD | TBD | TBD |
-| TBD | TBD | TBD |
-| TBD | TBD | TBD |
-| TBD | TBD | TBD |
+| Yavuz Baskurt | [@YavuzBaskurt](https://github.com/YavuzBaskurt) | TBD |
+| Emir Keskin | [@emirkeskin7](https://github.com/emirkeskin7) | TBD |
+| Berat Kumru | [@beratkumru](https://github.com/beratkumru) | TBD |
+| Kerem Mescioglu | [@keremmescioglu-prog](https://github.com/keremmescioglu-prog) | TBD |
+| Can Altay | [@canaltay24](https://github.com/canaltay24) | TBD |
 
 ## Status
 
