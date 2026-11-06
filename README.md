@@ -19,7 +19,7 @@ The store concept and tech stack are not decided yet. Record them here once the 
 
 - **Store concept:** TBD
 - **Backend:** TBD
-- **Database:** TBD
+- **Database:** [Supabase](https://supabase.com) (hosted PostgreSQL). Only the backend connects to it; tables come from migrations in this repository.
 - **Frontend:** TBD
 
 Changing the backend framework later is costly, so settle the stack before writing feature code.
