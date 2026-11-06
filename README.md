@@ -17,7 +17,7 @@ Team project for CS 308 Software Engineering (Sabancı University, Fall 2026–2
 
 Record decisions here once the team agrees:
 
-- **Store concept:** TBD
+- **Store concept:** Pokémon trading cards. If there isn't enough card data, the store becomes a board game shop; other product lines may be added later.
 - **Language:** JavaScript
 - **Backend:** [Node.js](https://nodejs.org)
 - **Database:** [Supabase](https://supabase.com) (hosted PostgreSQL). Only the backend connects to it; tables come from migrations in this repository.
