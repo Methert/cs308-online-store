@@ -15,14 +15,13 @@ Team project for CS 308 Software Engineering (Sabancı University, Fall 2026–2
 
 ## Status
 
-The store concept and tech stack are not decided yet. Record them here once the team agrees:
+Record decisions here once the team agrees:
 
 - **Store concept:** TBD
-- **Backend:** TBD
+- **Language:** JavaScript
+- **Backend:** [Node.js](https://nodejs.org)
 - **Database:** [Supabase](https://supabase.com) (hosted PostgreSQL). Only the backend connects to it; tables come from migrations in this repository.
-- **Frontend:** TBD
-
-Changing the backend framework later is costly, so settle the stack before writing feature code.
+- **Frontend:** [React](https://react.dev)
 
 ## Getting started
 
@@ -32,7 +31,7 @@ cd cs308-online-store
 git switch dev
 ```
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before your first commit. Run instructions go here once the stack is chosen.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before your first commit. Run instructions go here once the project skeleton exists.
 
 ## Documents
 
