@@ -4,14 +4,16 @@ Team project for CS 308 Software Engineering (Sabancı University, Fall 2026–2
 
 ## Team
 
-| Member | GitHub | Scrum role |
-| --- | --- | --- |
-| Ahmet Ertekin | [@Methert](https://github.com/Methert) | TBD |
-| Yavuz Baskurt | [@YavuzBaskurt](https://github.com/YavuzBaskurt) | TBD |
-| Emir Keskin | [@emirkeskin7](https://github.com/emirkeskin7) | TBD |
-| Berat Kumru | [@beratkumru](https://github.com/beratkumru) | TBD |
-| Kerem Mescioglu | [@keremmescioglu-prog](https://github.com/keremmescioglu-prog) | TBD |
-| Can Altay | [@canaltay24](https://github.com/canaltay24) | TBD |
+| Member | GitHub | Scrum role | Area |
+| --- | --- | --- | --- |
+| Ahmet Ertekin | [@Methert](https://github.com/Methert) | Scrum Master, Product Owner | Team lead, database |
+| Yavuz Baskurt | [@YavuzBaskurt](https://github.com/YavuzBaskurt) | Developer | Frontend |
+| Emir Keskin | [@emirkeskin7](https://github.com/emirkeskin7) | Developer | Frontend |
+| Berat Kumru | [@beratkumru](https://github.com/beratkumru) | Developer | Backend |
+| Kerem Mescioglu | [@keremmescioglu-prog](https://github.com/keremmescioglu-prog) | Developer | Backend |
+| Can Altay | [@canaltay24](https://github.com/canaltay24) | Developer | Fullstack |
+
+Every member writes the backlog items for their own area; the Product Owner sets the final priority.
 
 ## Status
 
