@@ -1,0 +1,20 @@
+{
+  "name": "cs308-backend",
+  "version": "1.0.0",
+  "description": "Backend for the CS 308 online store",
+  "scripts": {
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio"
+  },
+  "type": "commonjs",
+  "private": true,
+  "devDependencies": {
+    "dotenv": "16.4.7",
+    "prisma": "7.10.1"
+  },
+  "dependencies": {
+    "@prisma/client": "7.10.1"
+  }
+}
