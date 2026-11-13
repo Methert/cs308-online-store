@@ -21,7 +21,7 @@ Weight is the feature's share of the demo presentation grade. Progress Demo feat
 | [ ] | 11 | Sales manager: set prices and discounts, notify wish-list users of discounts, view/print/save invoices by date range, revenue and profit/loss chart (cost defaults to 50% of sale price) | 8% | |
 | [ ] | 12 | Product manager: manage products, categories and stock; delivery list (delivery ID, customer ID, product ID, quantity, total price, address, completed flag); update order status; approve or reject comments | 8% | |
 | [ ] | 13 | Real-time support chat from any page for guests and logged-in users; file attachments (PDF, image, video); agent queue with claiming; agents see customer context when logged in | 13% | |
-| [ ] | 14 | Customer actions: view, search, comment, rate, wish list, order, cancel (only while processing), return (only when delivered); customer fields: ID, name, email, home address, password; profile page | 8% | |
+| [ ] | 14 | Customer actions: view, search, comment, rate, wish list, order, cancel (only while processing), return (only when delivered); customer fields: ID, name, tax ID, email, home address, password; profile page | 8% | |
 | [ ] | 15 | Credit card entry at purchase; verification and limits are out of scope | 2% | |
 | [ ] | 16 | Selective returns within 30 days of purchase after delivery; sales manager approves after receiving the product; stock restored; customer notified; refund equals the discounted price actually paid | 8% | |
 | [ ] | 17 | Security: roles kept separate; passwords, credit card data, invoices and user accounts hashed in storage | 2% | |
