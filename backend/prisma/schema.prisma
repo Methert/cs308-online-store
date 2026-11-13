@@ -1,0 +1,177 @@
+// Database schema for the CS 308 online store.
+// Owner: Ahmet. Request changes through an issue; never edit a migration that was already applied.
+// Rules Prisma cannot express (CHECK constraints) live in the migration SQL.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  customer
+  sales_manager
+  product_manager
+  support_agent
+
+  @@map("user_role")
+}
+
+enum OrderStatus {
+  processing
+  in_transit
+  delivered
+  cancelled
+
+  @@map("order_status")
+}
+
+enum CommentStatus {
+  pending
+  approved
+  rejected
+
+  @@map("comment_status")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(customer)
+  homeAddress  String?  @map("home_address")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  cart             Cart?
+  orders           Order[]
+  reviews          Review[] @relation("ReviewAuthor")
+  moderatedReviews Review[] @relation("ReviewModerator")
+
+  @@map("users")
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id             Int      @id @default(autoincrement())
+  categoryId     Int      @map("category_id")
+  name           String
+  // For Pokémon cards: model is the card set, serialNumber the card's number in that set.
+  model          String
+  serialNumber   String   @map("serial_number")
+  description    String
+  stockQuantity  Int      @default(0) @map("stock_quantity")
+  price          Decimal  @db.Decimal(10, 2)
+  // Empty cost means half of the price in profit calculations (requirement 11).
+  cost           Decimal? @db.Decimal(10, 2)
+  warrantyStatus String   @map("warranty_status")
+  distributor    String
+  imageUrl       String?  @map("image_url")
+  // Removed products stay in the table so old orders keep their history.
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  category   Category    @relation(fields: [categoryId], references: [id])
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+// A guest cart has a guestToken and no user; after login it is attached to the user (requirement 4).
+model Cart {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @unique @map("user_id")
+  guestToken String?  @unique @map("guest_token")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  cartId    Int @map("cart_id")
+  productId Int @map("product_id")
+  quantity  Int
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@id([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  userId          Int         @map("user_id")
+  status          OrderStatus @default(processing)
+  totalPrice      Decimal     @map("total_price") @db.Decimal(10, 2)
+  deliveryAddress String      @map("delivery_address")
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int     @map("order_id")
+  productId Int     @map("product_id")
+  quantity  Int
+  // The price actually paid, after any discount. Refunds use this value (requirement 16).
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+  review  Review?
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// One review per purchased order line, only after delivery (requirement 5).
+// The rating is visible at once; the comment waits for a product manager.
+model Review {
+  id            Int            @id @default(autoincrement())
+  orderItemId   Int            @unique @map("order_item_id")
+  userId        Int            @map("user_id")
+  productId     Int            @map("product_id")
+  rating        Int
+  comment       String?
+  commentStatus CommentStatus? @map("comment_status")
+  moderatedBy   Int?           @map("moderated_by")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  user      User      @relation("ReviewAuthor", fields: [userId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+  moderator User?     @relation("ReviewModerator", fields: [moderatedBy], references: [id])
+
+  @@index([productId])
+  @@map("reviews")
+}
