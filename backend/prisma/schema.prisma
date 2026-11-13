@@ -3,8 +3,10 @@
 // Rules Prisma cannot express (CHECK constraints) live in the migration SQL.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider               = "prisma-client"
+  output                 = "../generated/prisma"
+  generatedFileExtension = "mts"
+  importFileExtension    = "mts"
 }
 
 datasource db {
@@ -43,6 +45,9 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   role         Role     @default(customer)
+  // Requirement 14: a customer has a tax ID. Staff accounts have none, so it is optional here
+  // and the registration API makes it mandatory for customers.
+  taxId        String?  @map("tax_id")
   homeAddress  String?  @map("home_address")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
