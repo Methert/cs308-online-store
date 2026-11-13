@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="48 -9 306 306">
+  <title>Morpeko in Full Belly Mode</title>
+  <defs>
+    <path id="head" d="M134 91
+      C137 56 120 20 91 4
+      C80 -2 74 0 70 9
+      C55 40 68 76 88 94
+      C78 89 67 89 61 94
+      C57 98 65 107 75 113
+      C84 118 95 119 108 116
+      C89 142 81 173 84 205
+      C87 248 118 282 165 286
+      C214 291 277 273 306 238
+      C330 207 323 161 305 130
+      C299 119 291 108 279 100
+      C294 104 313 102 324 91
+      C330 84 320 77 293 82
+      C318 68 335 47 340 29
+      C344 17 337 15 324 17
+      C282 20 245 46 233 82
+      C207 70 166 71 134 91Z"/>
+    <clipPath id="head-clip"><use href="#head"/></clipPath>
+    <path id="mouth" d="M165 220
+      C163 213 173 207 187 202
+      C203 197 217 194 230 196
+      C239 196 244 202 242 212
+      C239 229 223 245 204 245
+      C186 246 169 235 165 220Z"/>
+    <clipPath id="mouth-clip"><use href="#mouth"/></clipPath>
+  </defs>
+
+  <use href="#head" fill="#faeb99"/>
+  <g clip-path="url(#head-clip)" stroke-linejoin="round">
+    <path id="left-patch" fill="#c59f67" stroke="#9f7c51" stroke-width="1.8"
+      d="M44 -12H119L141 83
+        Q163 82 179 100L156 116L178 135L150 160
+        L139 183L134 208L132 237L169 268L150 293H44Z"/>
+    <path id="right-patch" fill="#656267" stroke="#514c51" stroke-width="1.8"
+      d="M357 -12H240L217 74
+        Q201 87 197 97L225 109L206 132L240 152
+        L260 177L266 207L265 232L240 258L259 287H357Z"/>
+    <path id="left-ear-highlight" fill="#dfc18a"
+      d="M78 4C106 12 126 45 131 74C106 64 81 61 65 54C62 36 65 16 74 5Z"/>
+    <path id="right-ear-highlight" fill="#858185"
+      d="M239 73C256 41 296 18 330 18C339 17 341 22 338 30C320 53 282 62 239 73Z"/>
+  </g>
+  <use href="#head" fill="none" stroke="#332b39" stroke-width="3.2" stroke-linejoin="round"/>
+  <path id="ear-folds" fill="#493c3f"
+    d="M101 54C109 63 115 79 116 96C112 80 106 68 101 54Z
+      M257 87C265 75 279 67 292 64C277 71 269 79 257 87Z"/>
+
+  <g id="eyes" fill="#2e2931">
+    <ellipse cx="144.5" cy="182.5" rx="21" ry="21.5"/>
+    <ellipse cx="255" cy="167.5" rx="21" ry="21"/>
+  </g>
+  <g id="eye-highlights" fill="#fffdf9">
+    <circle cx="144" cy="180.5" r="8"/>
+    <circle cx="253.5" cy="165.5" r="8"/>
+  </g>
+  <g id="cheeks" fill="#efa5ae" stroke="#54404a" stroke-width="2.2">
+    <ellipse cx="122.5" cy="222.5" rx="23" ry="26" transform="rotate(-12 122.5 222.5)"/>
+    <ellipse cx="278" cy="206.5" rx="23" ry="26" transform="rotate(8 278 206.5)"/>
+  </g>
+  <ellipse id="nose" cx="197" cy="187.5" rx="2.8" ry="1.7" fill="#332b39" transform="rotate(-17 197 187.5)"/>
+
+  <use href="#mouth" fill="#973e53"/>
+  <g clip-path="url(#mouth-clip)">
+    <path id="tongue" fill="#d27576" d="M165 234C186 219 216 213 244 216L246 249H165Z"/>
+    <path id="tooth" fill="#fffdf9" stroke="#57363e" stroke-width="1.6"
+      d="M185 201L216 194C216 204 213 218 206 220C199 222 189 212 185 201Z"/>
+  </g>
+  <use href="#mouth" fill="none" stroke="#56343e" stroke-width="2.4"/>
+</svg>
