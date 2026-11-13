@@ -76,6 +76,7 @@ The schema is in [prisma/schema.prisma](prisma/schema.prisma) and is owned by Ah
 | `npm start`              | Starts the API                                                        |
 | `npm test`               | Runs all unit tests (no database needed)                              |
 | `npm run test:coverage`  | Tests plus a coverage report                                          |
+| `npm run test:db`        | Checks the database rules on an in-memory PostgreSQL (no setup)       |
 | `npm run setup`          | Creates `.env` if it does not exist                                   |
 | `npm run db:local`       | Starts the local development database                                 |
 | `npm run db:migrate`     | Applies pending migrations (`prisma migrate deploy`)                  |
