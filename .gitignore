@@ -39,6 +39,9 @@ uploads/
 logs/
 *.log
 
+# Claude Code local settings
+.claude/
+
 # Editors and operating systems
 .idea/
 .vscode/
