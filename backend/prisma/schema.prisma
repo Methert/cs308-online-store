@@ -39,6 +39,18 @@ enum CommentStatus {
   @@map("comment_status")
 }
 
+// Physical condition of a second-hand card, best to worst.
+enum CardCondition {
+  mint
+  near_mint
+  excellent
+  good
+  played
+  poor
+
+  @@map("card_condition")
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   name         String
@@ -60,10 +72,16 @@ model User {
   @@map("users")
 }
 
+// Each category is a card set (the pack a card comes from), for example "Scarlet & Violet 151".
 model Category {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
   description String?
+  // The set's code in the Pokémon TCG data, for example "sv3pt5".
+  setCode     String?   @unique @map("set_code")
+  // The era the set belongs to, for example "Scarlet & Violet".
+  series      String?
+  releaseDate DateTime? @map("release_date") @db.Date
 
   products Product[]
 
@@ -71,24 +89,31 @@ model Category {
 }
 
 model Product {
-  id             Int      @id @default(autoincrement())
-  categoryId     Int      @map("category_id")
+  id             Int           @id @default(autoincrement())
+  categoryId     Int           @map("category_id")
   name           String
-  // For Pokémon cards: model is the card set, serialNumber the card's number in that set.
+  // A product is one second-hand card in one condition. The same card in another condition is
+  // another product with its own price and stock. The card's set is its category.
+  // model: the card's number in its set, for example "199/165".
   model          String
-  serialNumber   String   @map("serial_number")
+  // serialNumber: the shop's own stock code for this product.
+  serialNumber   String        @unique @map("serial_number")
+  // As printed on the card, for example "Special Illustration Rare".
+  rarity         String
+  condition      CardCondition @default(near_mint)
   description    String
-  stockQuantity  Int      @default(0) @map("stock_quantity")
-  price          Decimal  @db.Decimal(10, 2)
+  stockQuantity  Int           @default(0) @map("stock_quantity")
+  price          Decimal       @db.Decimal(10, 2)
   // Empty cost means half of the price in profit calculations (requirement 11).
-  cost           Decimal? @db.Decimal(10, 2)
-  warrantyStatus String   @map("warranty_status")
+  cost           Decimal?      @db.Decimal(10, 2)
+  // For a second-hand card: the authenticity and condition guarantee.
+  warrantyStatus String        @map("warranty_status")
   distributor    String
-  imageUrl       String?  @map("image_url")
+  imageUrl       String?       @map("image_url")
   // Removed products stay in the table so old orders keep their history.
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  isActive       Boolean       @default(true) @map("is_active")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
   category   Category    @relation(fields: [categoryId], references: [id])
   cartItems  CartItem[]
@@ -96,6 +121,7 @@ model Product {
   reviews    Review[]
 
   @@index([categoryId])
+  @@index([rarity])
   @@map("products")
 }
 
