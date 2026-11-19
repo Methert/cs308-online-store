@@ -43,7 +43,6 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
 
   // Shared dependencies handed to the routers of the other team members.
   // See "Adding a module" in the README.
-  // eslint-disable-next-line no-unused-vars
   const deps = { prisma, authenticate, optionalAuthenticate, requireRole, ROLES };
 
   // --- Routes ----------------------------------------------------------------
@@ -52,7 +51,7 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
     '/api/auth',
     createAuthRouter({ authService, authenticate, rateLimitPerWindow: config.authRateLimit }),
   );
-  app.use('/api/cart',   createCartRouter(deps));
+  app.use('/api/cart', createCartRouter(deps));
   app.use('/api/orders', createOrderRouter(deps));
   // Example (products):  app.use('/api/products', createProductRouter(deps));
 

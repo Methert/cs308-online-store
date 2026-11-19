@@ -19,7 +19,7 @@ Every member writes the backlog items for their own area; the Product Owner sets
 
 Record decisions here once the team agrees:
 
-- **Store concept:** Pokémon trading cards. If there isn't enough card data, the store becomes a board game shop; other product lines may be added later.
+- **Store concept:** A shop that sells second-hand Pokémon trading cards. Every card shows the set (pack) it comes from, its rarity and its condition. Customers buy from the shop; they do not list cards themselves. Other product lines may be added later.
 - **Language:** JavaScript
 - **Backend:** [Node.js](https://nodejs.org)
 - **Database:** [Supabase](https://supabase.com) (hosted PostgreSQL). Only the backend connects to it; tables come from migrations in this repository.

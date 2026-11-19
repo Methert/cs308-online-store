@@ -3,3 +3,5 @@
 *.sh text eol=lf
 *.bat text eol=crlf
 *.cmd text eol=crlf
+# Prisma checksums migration files, so they must have the same line endings on every machine
+*.sql text eol=lf
