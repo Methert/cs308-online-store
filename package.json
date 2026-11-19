@@ -5,6 +5,6 @@
     "scripts": {
         "test": "npm run test:backend && npm run test:frontend",
         "test:backend": "npm --prefix backend test",
-        "test:frontend": "node --test frontend/reference/store.test.cjs frontend/tests"
+        "test:frontend": "node --test frontend/reference/store.test.cjs frontend/tests/setup.test.js"
     }
 }
