@@ -27,7 +27,7 @@ const migrations = fs
 
 let db;
 
-// One customer, one product manager, one category and one card with a single copy in stock.
+// One customer, one product manager, one card set and one card with a single copy in stock.
 beforeEach(async () => {
   db = new PGlite();
   for (const sql of migrations) await db.exec(sql);
@@ -35,9 +35,10 @@ beforeEach(async () => {
     INSERT INTO users (name, email, password_hash, role, tax_id, updated_at) VALUES
       ('Ash', 'ash@example.com', 'hash', 'customer', '12345678901', now()),
       ('Oak', 'oak@example.com', 'hash', 'product_manager', NULL, now());
-    INSERT INTO categories (name) VALUES ('Scarlet & Violet 151');
-    INSERT INTO products (category_id, name, model, serial_number, description, stock_quantity, price, warranty_status, distributor, updated_at)
-      VALUES (1, 'Charizard ex', 'Scarlet & Violet 151', '199/165', 'Special illustration rare', 1, 129.00, 'Near mint guarantee', 'Example Distributor', now());
+    INSERT INTO categories (name, set_code, series, release_date)
+      VALUES ('Scarlet & Violet 151', 'sv3pt5', 'Scarlet & Violet', '2023-09-22');
+    INSERT INTO products (category_id, name, model, serial_number, rarity, condition, description, stock_quantity, price, warranty_status, distributor, updated_at)
+      VALUES (1, 'Charizard ex', '199/165', 'SV151-199-NM', 'Special Illustration Rare', 'near_mint', 'Special illustration rare', 1, 129.00, 'Authenticity and condition guarantee', 'Example Distributor', now());
   `);
 });
 
@@ -192,5 +193,67 @@ test('a comment always has an approval status', async () => {
   );
   await db.exec(
     `INSERT INTO reviews (order_item_id, user_id, product_id, rating, comment, comment_status) VALUES (1, 1, 1, 5, 'Great card', 'pending')`,
+  );
+});
+
+// Inserts a second copy of the seeded card; `columns` overrides the defaults.
+function insertCard(columns = {}) {
+  const values = {
+    category_id: 1,
+    name: "'Charizard ex'",
+    model: "'199/165'",
+    serial_number: "'SV151-199-EX'",
+    rarity: "'Special Illustration Rare'",
+    description: "'Special illustration rare'",
+    price: 99,
+    warranty_status: "'Authenticity and condition guarantee'",
+    distributor: "'Example Distributor'",
+    updated_at: 'now()',
+    ...columns,
+  };
+  return `INSERT INTO products (${Object.keys(values).join(', ')}) VALUES (${Object.values(values).join(', ')})`;
+}
+
+test('the same card in another condition is a separate product', async () => {
+  await db.exec(insertCard({ condition: "'excellent'" }));
+  const { rows } = await db.query(
+    `SELECT condition, price FROM products WHERE model = '199/165' ORDER BY id`,
+  );
+  assert.deepEqual(
+    rows.map((row) => row.condition),
+    ['near_mint', 'excellent'],
+  );
+});
+
+test('a card is near mint unless a condition is given', async () => {
+  await db.exec(insertCard());
+  const { rows } = await db.query(
+    `SELECT condition FROM products WHERE serial_number = 'SV151-199-EX'`,
+  );
+  assert.equal(rows[0].condition, 'near_mint');
+});
+
+test('a condition must be one of the known grades', async () => {
+  await assertRejected(
+    insertCard({ condition: "'like_new'" }),
+    'invalid input value for enum card_condition',
+  );
+});
+
+test('two products cannot share a stock code', async () => {
+  await assertRejected(
+    insertCard({ serial_number: "'SV151-199-NM'" }),
+    'products_serial_number_key',
+  );
+});
+
+test('a card needs a rarity', async () => {
+  await assertRejected(insertCard({ rarity: "'  '" }), 'products_rarity_check');
+});
+
+test('two card sets cannot share a set code', async () => {
+  await assertRejected(
+    `INSERT INTO categories (name, set_code) VALUES ('Another set', 'sv3pt5')`,
+    'categories_set_code_key',
   );
 });
