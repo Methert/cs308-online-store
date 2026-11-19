@@ -12,6 +12,8 @@ const { notFound, createErrorHandler } = require('./middleware/errorHandler');
 const { createAuthService } = require('./services/auth.service');
 const { createAuthRouter } = require('./routes/auth.routes');
 const { createHealthRouter } = require('./routes/health.routes');
+const { createCartRouter } = require('./routes/cart.routes');
+const { createOrderRouter } = require('./routes/orders.routes');
 const { ROLES } = require('./constants/roles');
 
 /**
@@ -41,7 +43,6 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
 
   // Shared dependencies handed to the routers of the other team members.
   // See "Adding a module" in the README.
-  // eslint-disable-next-line no-unused-vars
   const deps = { prisma, authenticate, optionalAuthenticate, requireRole, ROLES };
 
   // --- Routes ----------------------------------------------------------------
@@ -50,7 +51,8 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
     '/api/auth',
     createAuthRouter({ authService, authenticate, rateLimitPerWindow: config.authRateLimit }),
   );
-  // Example (cart):      app.use('/api/cart', createCartRouter(deps));
+  app.use('/api/cart', createCartRouter(deps));
+  app.use('/api/orders', createOrderRouter(deps));
   // Example (products):  app.use('/api/products', createProductRouter(deps));
 
   // --- Last: unknown URLs and the error handler ------------------------------
