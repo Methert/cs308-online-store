@@ -1,0 +1,25 @@
+name: Automated Tests
+
+on:
+  push:
+    branches: [ main, dev, "**" ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Run backend and frontend tests
+        run: npm test
