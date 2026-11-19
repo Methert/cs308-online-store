@@ -2,7 +2,7 @@ name: Automated Tests
 
 on:
   push:
-    branches: [ main, dev, "**" ]
+    branches: [ main, dev ]
   pull_request:
     branches: [ main, dev ]
 
@@ -21,5 +21,5 @@ jobs:
       - name: Install backend dependencies
         run: npm --prefix backend ci
 
-      - name: Run backend and frontend tests
+      - name: Run backend, database and frontend tests
         run: npm test
