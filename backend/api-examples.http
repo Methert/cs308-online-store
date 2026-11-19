@@ -1,0 +1,57 @@
+# Example requests for trying out the API.
+# Install the "REST Client" extension (Huachao Mao) in VS Code, then click the
+# "Send Request" text that appears above each request. Start the server first: npm run dev
+
+@base = http://localhost:3000/api
+
+### Are the server and the database up?
+GET {{base}}/health
+
+### Register (customer)
+# @name register
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Ash Ketchum",
+  "email": "ash@pokeshop.test",
+  "password": "Pikachu123",
+  "taxId": "12345678901",
+  "homeAddress": "Pallet Town, Route 1, No: 5"
+}
+
+### Log in
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "ash@pokeshop.test",
+  "password": "Pikachu123"
+}
+
+### My profile (automatically uses the token from the login response above)
+GET {{base}}/auth/me
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Log in as product manager (after npm run db:seed)
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "pm@pokeshop.test",
+  "password": "Manager123"
+}
+
+### Invalid registration: returns 400 and a list of errors per field
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "A",
+  "email": "not-an-email",
+  "password": "123"
+}
+
+### Profile without a token: returns 401
+GET {{base}}/auth/me
