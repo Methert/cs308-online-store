@@ -18,6 +18,14 @@ const cards = [
   { id: 200, name: 'Blastoise ex', rarity: 'special', price: 6990, stock: 1, tone: '#d9e2f1', description: 'Blastoise descends into deep water in this special illustration rare.' },
 ];
 
+// manage.html saves the edited product list in localStorage. If it is there, the shop uses it.
+try {
+  const savedCards = JSON.parse(localStorage.getItem('peko-products'));
+  if (Array.isArray(savedCards)) cards.splice(0, cards.length, ...savedCards);
+} catch {
+  // nothing saved yet or storage is blocked, keep the sample cards
+}
+
 const catalog = new Map(cards.map(card => [card.id, card]));
 const bag = new Map();
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -149,7 +157,17 @@ function changeQuantity(card, delta) {
   if (quantity > card.stock || quantity < 0) return;
   if (quantity === 0) bag.delete(card.id);
   else bag.set(card.id, quantity);
+  saveBag();
   renderBag();
+}
+
+// checkout.html reads the bag from localStorage
+function saveBag() {
+  try {
+    localStorage.setItem('peko-bag', JSON.stringify([...bag]));
+  } catch {
+    // the bag still works in memory
+  }
 }
 
 function addCard(card) {
@@ -195,6 +213,18 @@ cartItems.addEventListener('click', event => {
   const next = controls.find(control => control.dataset.change === change && !control.hasAttribute('data-remove'));
   (next ?? controls[0] ?? cartDialog.querySelector('.close')).focus();
 });
+
+// bring the bag back from the last visit, skip cards that were deleted or sold out since then
+try {
+  const savedBag = JSON.parse(localStorage.getItem('peko-bag')) ?? [];
+  for (const [id, quantity] of savedBag) {
+    const card = catalog.get(id);
+    if (card && card.stock > 0 && quantity > 0) bag.set(id, Math.min(quantity, card.stock));
+  }
+  saveBag();
+} catch {
+  // start with an empty bag
+}
 
 renderCatalog();
 renderBag();
