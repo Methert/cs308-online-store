@@ -160,13 +160,53 @@ model Order {
   createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
-  user  User        @relation(fields: [userId], references: [id])
-  items OrderItem[]
+  user    User        @relation(fields: [userId], references: [id])
+  items   OrderItem[]
+  payment Payment?
+  invoice Invoice?
 
   @@index([userId])
   @@index([status])
   @@map("orders")
 }
+
+// The mock bank's approval for an order (requirements 4 and 15). Only approved payments are
+// stored: a declined card creates no order.
+model Payment {
+  id            Int      @id @default(autoincrement())
+  orderId       Int      @unique @map("order_id")
+  amount        Decimal  @db.Decimal(10, 2)
+  cardHolder    String   @map("card_holder")
+  // The full card number is never stored, only its last four digits and a hash (requirement 17).
+  cardLast4     String   @map("card_last4") @db.Char(4)
+  cardHash      String   @map("card_hash")
+  bankReference String   @map("bank_reference")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+// One invoice per order, shown after payment and emailed as a PDF (requirement 4).
+// Managers list invoices by date range (requirements 11 and 12).
+model Invoice {
+  id            Int       @id @default(autoincrement())
+  orderId       Int       @unique @map("order_id")
+  invoiceNumber String    @unique @map("invoice_number")
+  totalPrice    Decimal   @map("total_price") @db.Decimal(10, 2)
+  pdfPath       String?   @map("pdf_path")
+  emailedAt     DateTime? @map("emailed_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+// The delivery list of requirement 12 is the database view "delivery_list", defined in the
+// migration SQL (Prisma does not manage views). Query it with prisma.$queryRaw.
 
 model OrderItem {
   id        Int     @id @default(autoincrement())
