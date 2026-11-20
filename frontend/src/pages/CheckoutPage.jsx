@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CardImage } from '../components/ProductCard.jsx';
-import { cards } from '../data/cards.js';
 import { money } from '../state/cart.js';
+import { catalogSource, findCard, getCards } from '../state/catalog.js';
 import { bankDecision, checkStock, createOrder, emptyCheckout, formatCardNumber, formatExpiry, validateCheckout } from '../state/checkout.js';
 import { lowerStock, readInventory, saveInventory } from '../state/inventory.js';
 import { formatDate, readOrders, saveOrders } from '../state/orders.js';
@@ -42,10 +42,13 @@ export function CheckoutPage() {
   }, [result]);
 
   // bag rows with the same name and price the shop shows
-  const items = cart.map(item => {
-    const card = cards.find(card => card.id === item.id);
+  const items = cart.filter(item => findCard(item.id)).map(item => {
+    const card = findCard(item.id);
     return { id: card.id, name: card.name, price: card.price, quantity: item.quantity, card };
   });
+  // Cards from the backend carry their own stock; the sample cards use the management page's
+  // saved inventory.
+  const fromApi = catalogSource() === 'api';
 
   function updateField(event) {
     const { name } = event.target;
@@ -67,7 +70,7 @@ export function CheckoutPage() {
     }
 
     // the stock may have changed on the management page, so check the saved inventory
-    const problems = checkStock(items, readInventory());
+    const problems = checkStock(items, fromApi ? getCards() : readInventory());
     setStockProblems(problems);
     if (problems.length > 0) return;
 
@@ -83,7 +86,8 @@ export function CheckoutPage() {
       const orders = readOrders();
       const order = createOrder({ items, fields, orders, user });
       saveOrders([...orders, order]);
-      saveInventory(lowerStock(readInventory(), items));
+      // TODO: with backend cards the stock only drops once orders go to POST /api/orders.
+      if (!fromApi) saveInventory(lowerStock(readInventory(), items));
       // empty the bag
       for (const item of items) updateQuantity(item.id, -item.quantity);
       setResult({ approved: true, order });

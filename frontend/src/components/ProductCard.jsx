@@ -1,10 +1,16 @@
-import { rarityLabels } from '../data/cards.js';
 import { money } from '../state/cart.js';
+import { rarityLabel } from '../state/catalog.js';
 import { useShop } from '../state/ShopContext.jsx';
 
+// The card's picture from the backend, or the placeholder for the sample cards.
 export function CardImage({ card, alt = '', loading = 'eager' }) {
-  return <img src="/assets/card-preview.svg" alt={alt} width="245" height="342"
+  return <img src={card.imageUrl ?? '/assets/card-preview.svg'} alt={alt} width="245" height="342"
     loading={loading} style={{ backgroundColor: card.tone }} />;
+}
+
+// "151 · #199/165" for API cards; the sample cards keep their original label.
+export function cardLabel(card) {
+  return card.setName ? `${card.setName} · #${card.number}` : `Scarlet & Violet 151 · #${card.id}`;
 }
 
 export function AddToBagButton({ card }) {
@@ -25,11 +31,11 @@ export function Stock({ card }) {
 export function ProductCard({ card, onDetails }) {
   return <article className="product" style={{ '--card-tone': card.tone }}>
     <button className="product-art" type="button" onClick={() => onDetails(card)} aria-label={`View ${card.name} details`}>
-      <span className="rarity">{rarityLabels[card.rarity]}</span>
+      <span className="rarity">{rarityLabel(card)}</span>
       <CardImage card={card} loading="lazy" />
     </button>
     <div className="product-info">
-      <p className="card-id">Scarlet &amp; Violet 151 · #{card.id}</p>
+      <p className="card-id">{cardLabel(card)}{card.conditionLabel && ` · ${card.conditionLabel}`}</p>
       <h3 className="card-title">{card.name}</h3>
       <Stock card={card} />
       <div className="product-bottom"><p className="price">{money(card.price)}</p><AddToBagButton card={card} /></div>

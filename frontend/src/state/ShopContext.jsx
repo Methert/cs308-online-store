@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { cartTotals, changeQuantity, normalizeCart } from './cart.js';
+import { subscribeCatalog, useCatalog } from './catalog.js';
 import { CART_KEY, readCart, readUser, saveCart, saveUser } from './storage.js';
 
 const ShopContext = createContext(null);
@@ -17,6 +18,17 @@ export function ShopProvider({ children }) {
     const timer = window.setTimeout(() => setMessage(''), 3000);
     return () => window.clearTimeout(timer);
   }, [message]);
+
+  // When the cards change (the API answered), drop bag items that no longer exist and cap
+  // quantities at the new stock.
+  useEffect(() => subscribeCatalog(() => {
+    const nextCart = normalizeCart(cartRef.current);
+    setStorageError(!saveCart(nextCart));
+    cartRef.current = nextCart;
+    setCart(nextCart);
+  }), []);
+  // Re-render totals and labels when the cards change.
+  useCatalog();
 
   useEffect(() => {
     function receiveCart(event) {

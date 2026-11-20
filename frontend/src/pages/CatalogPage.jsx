@@ -1,13 +1,17 @@
-import { cards, rarityLabels } from '../data/cards.js';
 import { ProductCard } from '../components/ProductCard.jsx';
+import { rarityLabel, useCatalog } from '../state/catalog.js';
 
 export function CatalogPage({ filters, onFilters, onDetails }) {
+  const { cards, source } = useCatalog();
+  // One filter button per rarity the shop actually has, in the order the cards come.
+  const rarities = new Map(cards.map(card => [card.rarity, rarityLabel(card)]));
   const query = filters.query.trim().toLowerCase();
   const results = cards.filter(card => {
     const match = card.name.toLowerCase().includes(query)
       || (filters.descriptions && card.description.toLowerCase().includes(query));
     return match && (filters.rarity === 'all' || filters.rarity === card.rarity);
   });
+  if (filters.sort === 'popular') results.sort((a, b) => (b.soldCount ?? 0) - (a.soldCount ?? 0));
   if (filters.sort === 'low') results.sort((a, b) => a.price - b.price);
   if (filters.sort === 'high') results.sort((a, b) => b.price - a.price);
 
@@ -28,7 +32,7 @@ export function CatalogPage({ filters, onFilters, onDetails }) {
     </div>
     <div className="catalog-tools">
       <div className="filters" role="group" aria-label="Card rarity">
-        {Object.entries({ all: 'All cards', ...rarityLabels }).map(([rarity, label]) =>
+        {[['all', 'All cards'], ...rarities].map(([rarity, label]) =>
           <button type="button" key={rarity} aria-pressed={filters.rarity === rarity} onClick={() => onFilters({ rarity })}>{label}</button>)}
       </div>
       <label className="sort">Sort by
@@ -39,6 +43,7 @@ export function CatalogPage({ filters, onFilters, onDetails }) {
         </select>
       </label>
     </div>
+    {source === 'error' && <p className="account-error" role="status">The shop server is not reachable, so sample cards are shown.</p>}
     <p className="result-count" role="status">{results.length} {results.length === 1 ? 'card' : 'cards'}</p>
     <div className="product-grid">
       {results.map(card => <ProductCard key={card.id} card={card} onDetails={onDetails} />)}
