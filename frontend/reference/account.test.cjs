@@ -5,6 +5,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, 'account.js'), 'utf8');
+const storeSource = fs.readFileSync(path.join(__dirname, 'store.js'), 'utf8');
 
 function loadAccount(hash, storage = new Map()) {
   const fields = new Map();
@@ -26,6 +27,7 @@ function loadAccount(hash, storage = new Map()) {
       }
       return fields.get(selector);
     },
+    querySelectorAll() { return []; },
   };
   const window = {
     location: { hash },
@@ -36,9 +38,11 @@ function loadAccount(hash, storage = new Map()) {
     },
     addEventListener(name, callback) { routeEvents[name] = callback; },
   };
-  vm.runInNewContext(source, { document, window });
+  const context = vm.createContext({ document, window });
+  vm.runInContext(source, context);
   return {
     field: selector => fields.get(selector),
+    run: code => vm.runInContext(code, context),
     storage,
     navigate(hash) {
       window.location.hash = hash;
@@ -145,3 +149,36 @@ test('corrupt session data falls back to the guest header', () => {
   const { field } = loadAccount('#catalog', new Map([['peko-cards-demo-user', '{broken']]));
   assert.equal(field('#guest-actions').hidden, false);
 });
+
+for (const route of ['#sign-in', '#sign-up']) {
+  test(`existing cart survives failed and successful ${route.slice(1)} and sign-out`, () => {
+    const { field, run, navigate } = loadAccount('#catalog');
+    run(storeSource);
+    run('changeQuantity(catalog.get(173), 2); changeQuantity(catalog.get(170), 1);');
+    const originalCart = run('JSON.stringify([...bag])');
+    navigate(route);
+
+    field('#account-email').value = 'trainer@example.com';
+    field('#account-password').value = 'incorrect';
+    field('#account-name').value = 'Test Trainer';
+    field('#account-confirm').value = 'mismatched';
+    field('#account-form').events.input();
+    field('#account-form').events.submit({ preventDefault() {} });
+    assert.equal(field('#account').hidden, false);
+    assert.equal(run('JSON.stringify([...bag])'), originalCart);
+
+    field('#account-password').value = 'peko-demo';
+    field('#account-confirm').value = 'peko-demo';
+    field('#account-form').events.input();
+    field('#account-form').events.submit({ preventDefault() {} });
+    assert.equal(field('#signed-in-account').hidden, false);
+    assert.equal(run('JSON.stringify([...bag])'), originalCart);
+    assert.equal(field('#cart-count').textContent, 3);
+    assert.equal(field('#subtotal').textContent, '$79.90');
+
+    field('#sign-out').events.click();
+    assert.equal(run('JSON.stringify([...bag])'), originalCart);
+    assert.equal(field('#cart-count').textContent, 3);
+    assert.equal(field('#subtotal').textContent, '$79.90');
+  });
+}
