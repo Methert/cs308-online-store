@@ -257,3 +257,73 @@ test('two card sets cannot share a set code', async () => {
     'categories_set_code_key',
   );
 });
+
+const payment = (columns = {}) => {
+  const values = {
+    order_id: 1,
+    amount: 129,
+    card_holder: "'Ash Ketchum'",
+    card_last4: "'4242'",
+    card_hash: "'hash'",
+    bank_reference: "'MOCK-1'",
+    ...columns,
+  };
+  return `INSERT INTO payments (${Object.keys(values).join(', ')}) VALUES (${Object.values(values).join(', ')})`;
+};
+
+test('an order has at most one payment', async () => {
+  await addDeliveredOrder();
+  await db.exec(payment());
+  await assertRejected(payment({ bank_reference: "'MOCK-2'" }), 'payments_order_id_key');
+});
+
+test('a payment stores exactly four card digits', async () => {
+  await addDeliveredOrder();
+  await assertRejected(payment({ card_last4: "'42a2'" }), 'payments_card_last4_check');
+});
+
+test('two invoices cannot share an invoice number', async () => {
+  await addDeliveredOrder();
+  await db.exec(`
+    INSERT INTO orders (user_id, total_price, delivery_address, updated_at) VALUES (1, 10, 'Istanbul', now());
+    INSERT INTO invoices (order_id, invoice_number, total_price) VALUES (1, 'INV-0001', 129);`);
+  await assertRejected(
+    `INSERT INTO invoices (order_id, invoice_number, total_price) VALUES (2, 'INV-0001', 10)`,
+    'invoices_invoice_number_key',
+  );
+});
+
+test('the delivery list shows each ordered product and whether it was delivered', async () => {
+  await addDeliveredOrder();
+  const { rows } = await db.query(
+    `SELECT delivery_id, customer_id, product_id, quantity, total_price, delivery_address, completed FROM delivery_list`,
+  );
+  assert.deepEqual(
+    rows.map((row) => ({ ...row, total_price: Number(row.total_price) })),
+    [
+      {
+        delivery_id: 1,
+        customer_id: 1,
+        product_id: 1,
+        quantity: 1,
+        total_price: 129,
+        delivery_address: 'Istanbul',
+        completed: true,
+      },
+    ],
+  );
+});
+
+test('cancelled orders are left out of the delivery list', async () => {
+  await addDeliveredOrder();
+  await db.exec(`UPDATE orders SET status = 'cancelled' WHERE id = 1`);
+  const { rows } = await db.query(`SELECT count(*)::int AS n FROM delivery_list`);
+  assert.equal(rows[0].n, 0);
+});
+
+test('the delivery list view obeys row level security', async () => {
+  const { rows } = await db.query(
+    `SELECT reloptions FROM pg_class WHERE relname = 'delivery_list'`,
+  );
+  assert.ok(rows[0].reloptions.includes('security_invoker=true'));
+});

@@ -58,6 +58,14 @@ Notes:
 
 Registration only creates **customers**. Staff accounts come from the seed script. Use these passwords for development only.
 
+### Demo catalog (also `npm run db:seed`)
+
+The seed also adds 3 card sets as categories (Base Set, 151, Crown Zenith) and 92 second-hand products: every card in near mint, valuable cards also in excellent condition, Base Set cards also as a played copy. 18 products are out of stock. Prices and stock are sample values; running the seed again updates them instead of adding duplicates.
+
+- The card facts (names, numbers, rarities) are in `prisma/data/card-snapshot.json`, and one picture per card (61 WebP files, about 5 MB) is in `public/images/cards/<set>/<number>.webp`. Both come from [TCGdex](https://tcgdex.dev), an open, maintained Pokémon TCG database (MIT licensed data). To change the sets, edit `scripts/build-card-snapshot.js` and run `node scripts/build-card-snapshot.js`; it downloads the pictures again and keeps only cards that have one.
+- Every product has a picture. `products.image_url` is a path such as `/images/cards/sv03.5/199.webp`, served by this API, so the frontend shows it as `<API address> + imageUrl` (for example `http://localhost:3000/images/cards/sv03.5/199.webp`). Nothing is loaded from other sites.
+- The pictures belong to The Pokémon Company. They are in this private repository for the course demo only; pages that show them should say the site is a student project not affiliated with Nintendo or The Pokémon Company.
+
 ## Schema changes
 
 The schema is in [prisma/schema.prisma](prisma/schema.prisma) and is owned by Ahmet. To request a change, open an issue.
