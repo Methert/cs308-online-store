@@ -33,7 +33,22 @@ cd cs308-online-store
 git switch dev
 ```
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before your first commit. Run instructions go here once the project skeleton exists.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before your first commit.
+
+## Frontend
+
+The storefront runs on React and Vite. From the repository root:
+
+```bash
+npm --prefix frontend ci
+npm run dev:frontend
+```
+
+Open the local address printed by Vite. Use `npm run test:frontend` for the frontend tests and `npm run build:frontend` for a production build.
+
+Sign in to the demo with `trainer@example.com` and `peko-demo`, or use Sign up to preview a chosen display name. Authentication currently simulates a session in the browser. The existing backend returns a public user's `name`, which the frontend uses for the account indicator.
+
+The demo bag saves product IDs and quantities in localStorage and restores them against the current sample catalog. Existing bags and demo sessions from the reference version retain their storage keys. Reconciliation between a guest bag and an existing account bag is pending team instruction.
 
 ## Documents
 

@@ -105,6 +105,7 @@ dialog::backdrop { background: #332b3959; }
 .cart-header h2 { font-size: 26px; letter-spacing: normal; }
 .cart-items { flex: 1; overflow: auto; padding: 14px 21px; }
 .cart-items .empty { margin-top: 10px; }
+.cart-storage-status { padding: 12px 21px; color: #943b3b; font-size: .875rem; }
 .cart-row { display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 13px 0; border-bottom: 1px solid var(--border); }
 .cart-row img { border-radius: 5%; }
 .cart-row h3 { font-size: 1rem; }
