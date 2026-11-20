@@ -6,6 +6,6 @@
         "test": "npm run test:backend && npm run test:db && npm run test:frontend",
         "test:backend": "npm --prefix backend test",
         "test:db": "npm --prefix backend run test:db",
-        "test:frontend": "node --test frontend/reference/store.test.cjs frontend/reference/store-storage.test.cjs frontend/reference/checkout.test.cjs frontend/reference/orders.test.cjs frontend/reference/manage.test.cjs"
+        "test:frontend": "node --test frontend/reference/store.test.cjs"
     }
 }

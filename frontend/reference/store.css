@@ -150,8 +150,3 @@ dialog::backdrop { background: #332b3959; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }
-
-/* links to the checkout, order history and management pages */
-.checkout-link { display: flex; align-items: center; justify-content: center; min-height: 43px; margin-top: 12px; font-size: 14px; }
-.footer-links { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; font-weight: 700; }
-.footer-links a:hover { text-decoration: underline; }
