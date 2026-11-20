@@ -2,7 +2,7 @@
 
 Node.js backend for the CS 308 online store. The database is Supabase (PostgreSQL), accessed through [Prisma](https://www.prisma.io) 7. The API uses Express 5.
 
-Ready so far: project skeleton, database connection, authentication (`/api/auth/*`), role checks, 85+ unit tests.
+Ready so far: project skeleton, database connection, authentication (`/api/auth/*`), role checks, cart and orders (`/api/cart`, `/api/orders`), products and categories (`/api/products`, `/api/categories`), 250+ unit tests.
 
 ## Requirements
 
@@ -185,6 +185,117 @@ Header `Authorization: Bearer <token>`. Response **200**: `{ "data": { "user": {
 
 There is no logout endpoint: tokens are not stored on the server, so the frontend just deletes the token.
 
+## Products and categories API
+
+Each category is a card set (Base Set, 151, Crown Zenith). Reading needs no login; changes need a `product_manager` token.
+
+| Method and URL                     | Who                     | What                                              |
+| ---------------------------------- | ----------------------- | ------------------------------------------------- |
+| `GET /api/products`                | everyone                | List, search, filter and sort products on sale    |
+| `GET /api/products/:id`            | everyone                | Product detail                                    |
+| `GET /api/categories`              | everyone                | Card sets, newest first, with `productCount`      |
+| `GET /api/categories/:id`          | everyone                | One card set                                      |
+| `GET /api/categories/:id/products` | everyone                | Products of one set (same options as the list)    |
+| `GET /api/products/manage`         | product / sales manager | List with `cost`, `isActive` and removed products |
+| `GET /api/products/manage/:id`     | product / sales manager | Detail with `cost` and `isActive`                 |
+| `POST /api/products`               | product manager         | Add a product                                     |
+| `PATCH /api/products/:id`          | product manager         | Change product fields (not the stock)             |
+| `DELETE /api/products/:id`         | product manager         | Take a product off sale                           |
+| `PATCH /api/products/:id/stock`    | product manager         | Set the stock or add/remove copies                |
+| `POST /api/categories`             | product manager         | Add a card set                                    |
+| `PATCH /api/categories/:id`        | product manager         | Change a card set                                 |
+| `DELETE /api/categories/:id`       | product manager         | Delete a card set that has no products (`204`)    |
+
+### List options (`GET /api/products`)
+
+| Parameter    | Values                                                            | Default    |
+| ------------ | ----------------------------------------------------------------- | ---------- |
+| `q`          | Text searched in the name **or** the description, any letter case | none       |
+| `categoryId` | A category id                                                     | all        |
+| `sort`       | `name_asc`, `price_asc`, `price_desc`, `popularity`, `newest`     | `name_asc` |
+| `page`       | 1, 2, ...                                                         | `1`        |
+| `limit`      | 1–100 products per page                                           | `20`       |
+| `status`     | Only on `/manage`: `active`, `inactive` or `all`                  | `active`   |
+
+Example: `GET /api/products?q=charizard&sort=price_asc&page=1&limit=20`. An invalid value gives `400 "Invalid query parameters"` with `details`.
+
+- **Popularity** is the number of copies sold in orders that were not cancelled (`soldCount` on every product).
+- **Sold-out products stay in the list and in search** (requirement 7). Use `inStock` to disable "Add to cart".
+- `%` and `_` in `q` are searched as normal characters.
+
+Response:
+
+```json
+{
+  "data": {
+    "products": [
+      {
+        "id": 12,
+        "name": "Charizard ex",
+        "model": "199/165",
+        "serialNumber": "SV03.5-199-NM",
+        "description": "...",
+        "rarity": "Special Illustration Rare",
+        "condition": "near_mint",
+        "price": 129.9,
+        "stockQuantity": 3,
+        "inStock": true,
+        "warrantyStatus": "Authenticity guaranteed; condition as described",
+        "distributor": "The Pokémon Company International",
+        "imageUrl": "/images/cards/sv03.5/199.webp",
+        "soldCount": 4,
+        "category": { "id": 2, "name": "151", "setCode": "sv03.5", "series": "Scarlet & Violet" },
+        "createdAt": "2026-11-20T13:34:03.688Z",
+        "updatedAt": "2026-11-20T13:34:03.688Z"
+      }
+    ],
+    "pagination": { "page": 1, "limit": 20, "total": 92, "totalPages": 5 }
+  }
+}
+```
+
+The detail endpoints answer `{ "data": { "product": { ... } } }`. Prices are numbers. `cost` and `isActive` are only in the `/manage` and product manager responses, never shown to customers. A removed product gives `404` on the public detail. An id that is not a positive whole number gives `400`.
+
+### Product manager: adding and changing products
+
+`POST /api/products`. Required fields: `categoryId`, `name`, `model`, `serialNumber`, `rarity`, `description`, `price`, `warrantyStatus`, `distributor`. Optional: `condition` (`mint`, `near_mint` (default), `excellent`, `good`, `played`, `poor`), `stockQuantity` (default 0), `cost` (empty means half of the price, requirement 11), `imageUrl` (`/images/...` or an `http(s)` address).
+
+```json
+{
+  "categoryId": 2,
+  "name": "Mew ex",
+  "model": "193/165",
+  "serialNumber": "SV03.5-193-NM",
+  "rarity": "Ultra Rare",
+  "description": "A full-art Mew ex.",
+  "price": 19.9,
+  "cost": 8,
+  "stockQuantity": 5,
+  "warrantyStatus": "Authenticity guaranteed; condition as described",
+  "distributor": "The Pokémon Company International",
+  "imageUrl": "/images/cards/sv03.5/193.webp"
+}
+```
+
+Response **201** `{ "data": { "product": { ... } } }`. Errors: `400` (invalid field, unknown field, unknown category), `409` (serial number already used).
+
+`PATCH /api/products/:id` takes any of the same fields (at least one), plus `isActive: true` to put a removed product back on sale. `cost: null` clears the cost. Stock is **not** accepted here.
+
+`DELETE /api/products/:id` takes the product off sale: it disappears from the shop and from every cart, but the row stays because old orders and invoices point at it.
+
+### Product manager: stock
+
+`PATCH /api/products/:id/stock` with exactly one of:
+
+- `{ "stockQuantity": 10 }` sets the stock to 10 (for example after counting).
+- `{ "change": 5 }` adds 5 copies; `{ "change": -2 }` removes 2.
+
+`change` is applied by the database in one statement (`stock_quantity = stock_quantity + change`), so it never overwrites a checkout happening at the same moment, and the stock can never go below 0. Removing more than there is gives `409 "Not enough stock: only 3 left, cannot remove 5"`.
+
+### Product manager: categories
+
+`POST /api/categories` with `name` (required), `description`, `setCode`, `series`, `releaseDate` (`YYYY-MM-DD`). `PATCH /api/categories/:id` takes the same fields (send `null` to clear one). A duplicate name or set code gives `409`. `DELETE` works only when no product uses the category, removed products included (`409` otherwise).
+
 ## Adding a module (cart, products, reviews, ...)
 
 **1.** Create `src/routes/cart.routes.js`:
@@ -219,17 +330,20 @@ Available helpers: `authenticate` (login required, sets `req.user`), `optionalAu
 
 ## Security notes (requirements 17 and 18)
 
-| Measure                                                                                      | Where                             |
-| -------------------------------------------------------------------------------------------- | --------------------------------- |
-| Passwords are hashed with bcrypt; the hash is never returned                                 | `services/auth.service.js`        |
-| Nobody can register as staff: the role in the request is ignored                             | `validators/auth.schemas.js`      |
-| Unknown email and wrong password look the same (no account enumeration)                      | `auth.service.js` → `login`       |
-| 20 login/register attempts per IP per 15 minutes                                             | `routes/auth.routes.js`           |
-| Tokens accept only `HS256`; tampered roles are rejected; the token holds only id and role    | `utils/tokenService.js`           |
-| Roles are checked on the server for every protected route                                    | `middleware/requireRole.js`       |
-| Parallel registrations with the same email: the database `UNIQUE` index stops the rest (409) | `repositories/user.repository.js` |
-| Internal error details are never sent to the client                                          | `middleware/errorHandler.js`      |
-| Security headers (helmet) and CORS limited to our frontend                                   | `app.js`                          |
-| The server refuses to start with a missing or weak setting (`JWT_SECRET` < 32 chars)         | `config/env.js`                   |
+| Measure                                                                                      | Where                                |
+| -------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Passwords are hashed with bcrypt; the hash is never returned                                 | `services/auth.service.js`           |
+| Nobody can register as staff: the role in the request is ignored                             | `validators/auth.schemas.js`         |
+| Unknown email and wrong password look the same (no account enumeration)                      | `auth.service.js` → `login`          |
+| 20 login/register attempts per IP per 15 minutes                                             | `routes/auth.routes.js`              |
+| Tokens accept only `HS256`; tampered roles are rejected; the token holds only id and role    | `utils/tokenService.js`              |
+| Roles are checked on the server for every protected route                                    | `middleware/requireRole.js`          |
+| Parallel registrations with the same email: the database `UNIQUE` index stops the rest (409) | `repositories/user.repository.js`    |
+| Internal error details are never sent to the client                                          | `middleware/errorHandler.js`         |
+| Only product managers change products, stock and categories; customers never see the cost    | `routes/products.routes.js`          |
+| Stock changes are atomic and cannot go below 0, even with parallel requests                  | `repositories/product.repository.js` |
+| Invalid or too large ids give 400 before reaching the database                               | `validators/catalog.schemas.js`      |
+| Security headers (helmet) and CORS limited to our frontend                                   | `app.js`                             |
+| The server refuses to start with a missing or weak setting (`JWT_SECRET` < 32 chars)         | `config/env.js`                      |
 
 Credit card data, invoices and other sensitive data are handled in later sprints.

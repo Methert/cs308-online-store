@@ -15,6 +15,12 @@ const { createAuthRouter } = require('./routes/auth.routes');
 const { createHealthRouter } = require('./routes/health.routes');
 const { createCartRouter } = require('./routes/cart.routes');
 const { createOrderRouter } = require('./routes/orders.routes');
+const { createProductRouter } = require('./routes/products.routes');
+const { createCategoryRouter } = require('./routes/categories.routes');
+const { createProductService } = require('./services/product.service');
+const { createCategoryService } = require('./services/category.service');
+const { createProductRepository } = require('./repositories/product.repository');
+const { createCategoryRepository } = require('./repositories/category.repository');
 const { ROLES } = require('./constants/roles');
 
 /**
@@ -23,9 +29,19 @@ const { ROLES } = require('./constants/roles');
  * @param {object} options.userRepository  createUserRepository(prisma), or a fake one in tests
  * @param {Function} options.checkDatabase function that runs "SELECT 1" on the database
  * @param {object} [options.prisma]        client for the other modules (cart, orders, ...)
+ * @param {object} [options.productRepository]   default: built from prisma; tests pass a fake
+ * @param {object} [options.categoryRepository]  default: built from prisma; tests pass a fake
  * @param {object} [options.logger]
  */
-function createApp({ config, userRepository, checkDatabase, prisma = null, logger = console }) {
+function createApp({
+  config,
+  userRepository,
+  checkDatabase,
+  prisma = null,
+  productRepository = prisma ? createProductRepository(prisma) : null,
+  categoryRepository = prisma ? createCategoryRepository(prisma) : null,
+  logger = console,
+}) {
   const app = express();
 
   // --- General settings ------------------------------------------------------
@@ -41,6 +57,8 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
     tokenService,
     saltRounds: config.bcryptRounds,
   });
+  const productService = createProductService({ productRepository, categoryRepository });
+  const categoryService = createCategoryService({ categoryRepository });
 
   // Shared dependencies handed to the routers of the other team members.
   // See "Adding a module" in the README.
@@ -65,7 +83,8 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
   );
   app.use('/api/cart', createCartRouter(deps));
   app.use('/api/orders', createOrderRouter(deps));
-  // Example (products):  app.use('/api/products', createProductRouter(deps));
+  app.use('/api/products', createProductRouter({ ...deps, productService }));
+  app.use('/api/categories', createCategoryRouter({ ...deps, productService, categoryService }));
 
   // --- Last: unknown URLs and the error handler ------------------------------
   app.use(notFound);
