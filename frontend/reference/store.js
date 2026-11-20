@@ -23,6 +23,7 @@ const bag = new Map();
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const money = cents => currency.format(cents / 100);
 const search = document.querySelector('#search');
+const includeDescriptions = document.querySelector('#include-descriptions');
 const sort = document.querySelector('#sort');
 const filters = [...document.querySelectorAll('[data-rarity]')];
 const grid = document.querySelector('#products');
@@ -71,8 +72,9 @@ function productTile(card) {
 function renderCatalog() {
   const query = search.value.trim().toLowerCase();
   const results = cards.filter(card => {
-    const text = `${card.name} ${card.description} ${rarityLabels[card.rarity]} ${card.id} Scarlet & Violet 151`.toLowerCase();
-    return (selectedRarity === 'all' || selectedRarity === card.rarity) && text.includes(query);
+    const matchesSearch = card.name.toLowerCase().includes(query)
+      || (includeDescriptions.checked && card.description.toLowerCase().includes(query));
+    return (selectedRarity === 'all' || selectedRarity === card.rarity) && matchesSearch;
   });
   if (sort.value === 'low') results.sort((a, b) => a.price - b.price);
   if (sort.value === 'high') results.sort((a, b) => b.price - a.price);
@@ -167,9 +169,11 @@ function addCard(card) {
 
 filters.forEach(button => button.addEventListener('click', () => selectRarity(button.dataset.rarity)));
 search.addEventListener('input', renderCatalog);
+includeDescriptions.addEventListener('change', renderCatalog);
 sort.addEventListener('change', renderCatalog);
 document.querySelector('#reset-filters').addEventListener('click', () => {
   search.value = '';
+  includeDescriptions.checked = false;
   selectRarity('all');
   search.focus();
 });

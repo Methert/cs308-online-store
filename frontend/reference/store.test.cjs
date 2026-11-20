@@ -11,7 +11,12 @@ function loadStore() {
   const document = {
     querySelector(selector) {
       if (!elements.has(selector)) {
-        elements.set(selector, { value: '', addEventListener() {} });
+        elements.set(selector, {
+          value: '',
+          checked: false,
+          events: {},
+          addEventListener(name, callback) { this.events[name] = callback; },
+        });
       }
       return elements.get(selector);
     },
@@ -22,12 +27,36 @@ function loadStore() {
   return { run: code => vm.runInContext(code, store), elements };
 }
 
-test('description search retains a sold-out card and disables its add button', () => {
+test('single-letter search matches card names by default', () => {
+  const { run, elements } = loadStore();
+  elements.get('#search').value = '  K  ';
+  run('renderCatalog()');
+  const names = [...elements.get('#products').innerHTML.matchAll(/class="card-title">([^<]+)/g)];
+  assert.deepEqual(names.map(match => match[1]), ['Pikachu']);
+});
+
+test('description search is opt-in and updates results when toggled', () => {
   const { run, elements } = loadStore();
   elements.get('#search').value = '  ROCKY LANDSCAPE  ';
   run('renderCatalog()');
+  assert.equal(elements.get('#result-count').textContent, '0 cards');
+  assert.equal(elements.get('#empty-catalog').hidden, false);
+  const toggle = elements.get('#include-descriptions');
+  toggle.checked = true;
+  toggle.events.change();
   assert.equal(elements.get('#result-count').textContent, '1 card');
   assert.match(elements.get('#products').innerHTML, /Sold out: Charmander" disabled/);
+  toggle.checked = false;
+  toggle.events.change();
+  assert.equal(elements.get('#result-count').textContent, '0 cards');
+});
+
+test('name search composes with the rarity filter', () => {
+  const { run, elements } = loadStore();
+  elements.get('#search').value = 'ex';
+  run("selectRarity('ultra')");
+  assert.equal(elements.get('#result-count').textContent, '1 card');
+  assert.match(elements.get('#products').innerHTML, /class="card-title">Mew ex/);
 });
 
 test('price sorting orders cards within the selected rarity', () => {
