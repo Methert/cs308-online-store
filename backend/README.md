@@ -58,6 +58,13 @@ Notes:
 
 Registration only creates **customers**. Staff accounts come from the seed script. Use these passwords for development only.
 
+### Demo catalog (also `npm run db:seed`)
+
+The seed also adds 3 card sets as categories (Base, 151, Crown Zenith) and about 100 second-hand products: every card in near mint, valuable cards also in excellent condition, Base set cards also as a played copy. About one product in six is out of stock. Prices and stock are sample values; running the seed again updates them instead of adding duplicates.
+
+- The card facts (names, numbers, rarities, image links) are in `prisma/data/card-snapshot.json`, taken from the open [Pokémon TCG data](https://github.com/PokemonTCG/pokemon-tcg-data). To change the sets, edit `scripts/build-card-snapshot.js` and run `node scripts/build-card-snapshot.js`.
+- Card images are not stored in the repository. `products.image_url` links to `images.pokemontcg.io`. That service belongs to a legacy project that announced it will go offline on 1 March 2027.
+
 ## Schema changes
 
 The schema is in [prisma/schema.prisma](prisma/schema.prisma) and is owned by Ahmet. To request a change, open an issue.

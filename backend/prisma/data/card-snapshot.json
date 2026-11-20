@@ -1,0 +1,540 @@
+{
+  "source": "https://raw.githubusercontent.com/PokemonTCG/pokemon-tcg-data/master",
+  "sets": [
+    {
+      "setCode": "base1",
+      "name": "Base",
+      "series": "Base",
+      "releaseDate": "1999-01-09",
+      "printedTotal": 102
+    },
+    {
+      "setCode": "sv3pt5",
+      "name": "151",
+      "series": "Scarlet & Violet",
+      "releaseDate": "2023-09-22",
+      "printedTotal": 165
+    },
+    {
+      "setCode": "swsh12pt5",
+      "name": "Crown Zenith",
+      "series": "Sword & Shield",
+      "releaseDate": "2023-01-20",
+      "printedTotal": 159
+    }
+  ],
+  "cards": [
+    {
+      "setCode": "base1",
+      "number": "1",
+      "name": "Alakazam",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo",
+      "imageUrl": "https://images.pokemontcg.io/base1/1.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "2",
+      "name": "Blastoise",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo",
+      "imageUrl": "https://images.pokemontcg.io/base1/2.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "3",
+      "name": "Chansey",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo",
+      "imageUrl": "https://images.pokemontcg.io/base1/3.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "17",
+      "name": "Beedrill",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/base1/17.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "18",
+      "name": "Dragonair",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/base1/18.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "19",
+      "name": "Dugtrio",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/base1/19.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "23",
+      "name": "Arcanine",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/base1/23.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "24",
+      "name": "Charmeleon",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/base1/24.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "25",
+      "name": "Dewgong",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/base1/25.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "43",
+      "name": "Abra",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/base1/43.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "44",
+      "name": "Bulbasaur",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/base1/44.png"
+    },
+    {
+      "setCode": "base1",
+      "number": "45",
+      "name": "Caterpie",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/base1/45.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "1",
+      "name": "Bulbasaur",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/1.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "2",
+      "name": "Ivysaur",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/2.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "3",
+      "name": "Venusaur ex",
+      "supertype": "Pokémon",
+      "rarity": "Double Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/3.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "4",
+      "name": "Charmander",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/4.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "5",
+      "name": "Charmeleon",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/5.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "6",
+      "name": "Charizard ex",
+      "supertype": "Pokémon",
+      "rarity": "Double Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/6.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "7",
+      "name": "Squirtle",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/7.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "8",
+      "name": "Wartortle",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/8.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "9",
+      "name": "Blastoise ex",
+      "supertype": "Pokémon",
+      "rarity": "Double Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/9.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "15",
+      "name": "Beedrill",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/15.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "26",
+      "name": "Raichu",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/26.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "34",
+      "name": "Nidoking",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/34.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "166",
+      "name": "Bulbasaur",
+      "supertype": "Pokémon",
+      "rarity": "Illustration Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/166.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "167",
+      "name": "Ivysaur",
+      "supertype": "Pokémon",
+      "rarity": "Illustration Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/167.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "168",
+      "name": "Charmander",
+      "supertype": "Pokémon",
+      "rarity": "Illustration Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/168.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "182",
+      "name": "Venusaur ex",
+      "supertype": "Pokémon",
+      "rarity": "Ultra Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/182.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "183",
+      "name": "Charizard ex",
+      "supertype": "Pokémon",
+      "rarity": "Ultra Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/183.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "184",
+      "name": "Blastoise ex",
+      "supertype": "Pokémon",
+      "rarity": "Ultra Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/184.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "198",
+      "name": "Venusaur ex",
+      "supertype": "Pokémon",
+      "rarity": "Special Illustration Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/198.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "199",
+      "name": "Charizard ex",
+      "supertype": "Pokémon",
+      "rarity": "Special Illustration Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/199.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "200",
+      "name": "Blastoise ex",
+      "supertype": "Pokémon",
+      "rarity": "Special Illustration Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/200.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "205",
+      "name": "Mew ex",
+      "supertype": "Pokémon",
+      "rarity": "Hyper Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/205.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "206",
+      "name": "Switch",
+      "supertype": "Trainer",
+      "rarity": "Hyper Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/206.png"
+    },
+    {
+      "setCode": "sv3pt5",
+      "number": "207",
+      "name": "Basic Psychic Energy",
+      "supertype": "Energy",
+      "rarity": "Hyper Rare",
+      "imageUrl": "https://images.pokemontcg.io/sv3pt5/207.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "1",
+      "name": "Oddish",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/1.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "2",
+      "name": "Gloom",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/2.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "3",
+      "name": "Bellossom",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/3.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "4",
+      "name": "Tangela",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/4.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "5",
+      "name": "Tangrowth",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/5.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "6",
+      "name": "Scyther",
+      "supertype": "Pokémon",
+      "rarity": "Common",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/6.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "9",
+      "name": "Yanmega",
+      "supertype": "Pokémon",
+      "rarity": "Rare",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/9.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "12",
+      "name": "Carnivine",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/12.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "13",
+      "name": "Leafeon V",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo V",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/13.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "14",
+      "name": "Leafeon VSTAR",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo VSTAR",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/14.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "16",
+      "name": "Zarude",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/16.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "17",
+      "name": "Calyrex",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/17.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "18",
+      "name": "Charizard V",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo V",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/18.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "19",
+      "name": "Charizard VSTAR",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo VSTAR",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/19.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "20",
+      "name": "Radiant Charizard",
+      "supertype": "Pokémon",
+      "rarity": "Radiant Rare",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/20.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "21",
+      "name": "Entei",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/21.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "22",
+      "name": "Simisear V",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo V",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/22.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "23",
+      "name": "Simisear VSTAR",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo VSTAR",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/23.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "28",
+      "name": "Salazzle",
+      "supertype": "Pokémon",
+      "rarity": "Uncommon",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/28.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "51",
+      "name": "Radiant Charjabug",
+      "supertype": "Pokémon",
+      "rarity": "Radiant Rare",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/51.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "54",
+      "name": "Zeraora VMAX",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo VMAX",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/54.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "66",
+      "name": "Hatterene VMAX",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo VMAX",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/66.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "101",
+      "name": "Rayquaza VMAX",
+      "supertype": "Pokémon",
+      "rarity": "Rare Holo VMAX",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/101.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "105",
+      "name": "Radiant Eternatus",
+      "supertype": "Pokémon",
+      "rarity": "Radiant Rare",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/105.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "147",
+      "name": "Elesa's Sparkle",
+      "supertype": "Trainer",
+      "rarity": "Rare Ultra",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/147.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "148",
+      "name": "Friends in Hisui",
+      "supertype": "Trainer",
+      "rarity": "Rare Ultra",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/148.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "149",
+      "name": "Friends in Sinnoh",
+      "supertype": "Trainer",
+      "rarity": "Rare Ultra",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/149.png"
+    },
+    {
+      "setCode": "swsh12pt5",
+      "number": "160",
+      "name": "Pikachu",
+      "supertype": "Pokémon",
+      "rarity": "Rare Secret",
+      "imageUrl": "https://images.pokemontcg.io/swsh12pt5/160.png"
+    }
+  ]
+}

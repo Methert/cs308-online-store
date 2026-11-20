@@ -1,4 +1,4 @@
-// Creates the demo accounts:  npm run db:seed
+// Creates the demo accounts and the demo card catalog:  npm run db:seed
 // Registration only creates customers, so the manager and support accounts come from here.
 // Running it again is safe (upsert): it does not break an existing account, it resets its
 // password.
@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const bcrypt = require('bcryptjs');
 const { createPrismaClient } = require('../src/db/prisma');
+const { seedCatalog } = require('./seed-catalog');
 
 const DEMO_USERS = [
   {
@@ -54,6 +55,11 @@ async function main() {
       });
       console.log(`  ✓ ${user.role.padEnd(16)} ${user.email} / ${password}`);
     }
+
+    const catalog = await seedCatalog(prisma);
+    console.log(
+      `  ✓ catalog          ${catalog.categories} card sets, ${catalog.products} products`,
+    );
   } finally {
     await prisma.$disconnect();
   }
