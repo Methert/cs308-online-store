@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Link } from 'react-router';
 import { cards } from '../data/cards.js';
 import { money } from '../state/cart.js';
 import { useShop } from '../state/ShopContext.jsx';
@@ -38,7 +39,7 @@ export function CartDialog({ open, onClose }) {
     {storageError && <p className="cart-storage-status" role="status">Your browser could not save this bag. Keep this page open to retain your items.</p>}
     {cart.length > 0 && <div className="cart-summary">
       <div><strong>Subtotal</strong><strong>{money(cents)}</strong></div>
-      <p>Demo bag. Checkout is unavailable in this prototype.</p>
+      <Link className="add checkout-link" to="/checkout" onClick={onClose}>Go to checkout</Link>
     </div>}
   </Modal>;
 }
