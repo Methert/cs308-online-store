@@ -1,5 +1,10 @@
 // Tests for the demo catalog built from the card snapshot (prisma/seed-catalog.js).
-const { buildCatalog, RARITY_PRICES, CONDITION_FACTORS } = require('../prisma/seed-catalog');
+const {
+  buildCatalog,
+  rarityPrice,
+  RARITY_PRICES,
+  CONDITION_FACTORS,
+} = require('../prisma/seed-catalog');
 
 const sample = {
   sets: [
@@ -40,7 +45,7 @@ const sample = {
       number: '4',
       name: 'Charizard',
       supertype: 'Pokémon',
-      rarity: 'Rare Holo',
+      rarity: 'Holo Rare',
       imageUrl: 'https://example.test/4.png',
     },
   ],
@@ -76,13 +81,13 @@ describe('buildCatalog', () => {
   test('a valuable card is also sold in excellent condition, for less', () => {
     const nearMint = bySerial('SV3PT5-199-NM');
     const excellent = bySerial('SV3PT5-199-EX');
-    expect(nearMint.price).toBe(RARITY_PRICES['Special Illustration Rare']);
+    expect(nearMint.price).toBe(RARITY_PRICES['special illustration rare']);
     expect(excellent.price).toBeCloseTo(nearMint.price * CONDITION_FACTORS.excellent, 2);
   });
 
   test('vintage Base set cards cost more and also come as a played copy', () => {
     const nearMint = bySerial('BASE1-4-NM');
-    expect(nearMint.price).toBe(RARITY_PRICES['Rare Holo'] * 4);
+    expect(nearMint.price).toBe(RARITY_PRICES['holo rare'] * 4);
     expect(bySerial('BASE1-4-PL').price).toBe(nearMint.price * CONDITION_FACTORS.played);
   });
 
@@ -129,6 +134,25 @@ describe('the real card snapshot', () => {
   });
 
   test('has three card sets', () => {
-    expect(categories.map((c) => c.setCode)).toEqual(['base1', 'sv3pt5', 'swsh12pt5']);
+    expect(categories.map((c) => c.setCode)).toEqual(['base1', 'sv03.5', 'swsh12.5']);
+  });
+});
+
+describe('rarityPrice', () => {
+  test('matches a rarity whatever its letter case', () => {
+    expect(rarityPrice('Ultra Rare')).toBe(RARITY_PRICES['ultra rare']);
+    expect(rarityPrice('Double rare')).toBe(RARITY_PRICES['double rare']);
+  });
+
+  test('uses the default price for a rarity it does not know', () => {
+    expect(rarityPrice('Amazing Rare')).toBe(2);
+  });
+});
+
+describe('card images', () => {
+  test('every product in the real snapshot links to a card image', () => {
+    for (const product of buildCatalog().products) {
+      expect(product.imageUrl).toMatch(/^https:\/\/assets\.tcgdex\.net\/.+\/high\.webp$/);
+    }
   });
 });

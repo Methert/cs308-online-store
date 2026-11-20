@@ -1,19 +1,21 @@
 // Rebuilds prisma/data/card-snapshot.json, the card list the demo catalog is seeded from.
 //   node scripts/build-card-snapshot.js
 //
-// Source: the open Pokémon TCG data on GitHub (github.com/PokemonTCG/pokemon-tcg-data).
-// Only facts are copied: set names, card names, numbers and rarities. Card images are NOT
-// downloaded; the snapshot keeps their URLs on images.pokemontcg.io.
+// Source: TCGdex (tcgdex.dev), an open, maintained Pokémon TCG database. Its data is MIT
+// licensed; the card images belong to The Pokémon Company and are only linked, never downloaded.
+// Every card in the snapshot has an image link that answered 200 when the snapshot was built.
 // Run this only when the chosen sets change; the seed itself works offline from the snapshot.
 const fs = require('fs');
 const path = require('path');
 
-const SOURCE = 'https://raw.githubusercontent.com/PokemonTCG/pokemon-tcg-data/master';
+const API = 'https://api.tcgdex.net/v2/en';
 const OUTPUT = path.join(__dirname, '..', 'prisma', 'data', 'card-snapshot.json');
 
-// The sets the shop sells, and at most how many cards of each rarity to take from each set.
-const SET_CODES = ['base1', 'sv3pt5', 'swsh12pt5'];
+// The sets the shop sells (TCGdex set IDs), and at most how many cards of each rarity to take.
+const SET_IDS = ['base1', 'sv03.5', 'swsh12.5'];
 const CARDS_PER_RARITY = 3;
+// TCGdex serves each image in several sizes and formats; "high.webp" is sharp and small.
+const IMAGE_SUFFIX = '/high.webp';
 
 async function fetchJson(url) {
   const res = await fetch(url);
@@ -21,43 +23,67 @@ async function fetchJson(url) {
   return res.json();
 }
 
+async function imageWorks(url) {
+  const res = await fetch(url, { method: 'HEAD' });
+  return res.ok;
+}
+
+// Runs `task` on every item, at most `limit` at a time, keeping the original order.
+async function mapLimited(items, limit, task) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await task(items[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: limit }, worker));
+  return results;
+}
+
 async function main() {
-  const allSets = await fetchJson(`${SOURCE}/sets/en.json`);
   const sets = [];
   const cards = [];
 
-  for (const code of SET_CODES) {
-    const set = allSets.find((s) => s.id === code);
-    if (!set) throw new Error(`Set ${code} not found`);
+  for (const id of SET_IDS) {
+    const set = await fetchJson(`${API}/sets/${id}`);
     sets.push({
       setCode: set.id,
       name: set.name,
-      series: set.series,
-      releaseDate: set.releaseDate.replaceAll('/', '-'),
-      printedTotal: set.printedTotal,
+      series: set.serie.name,
+      releaseDate: set.releaseDate,
+      printedTotal: set.cardCount.official,
     });
 
-    // Lowest card numbers first within each rarity, so the choice is stable between runs.
-    const setCards = (await fetchJson(`${SOURCE}/cards/en/${code}.json`))
-      .filter((card) => card.rarity && card.images)
-      .sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+    // The set lists only names and numbers; rarity is on each card.
+    const details = await mapLimited(
+      set.cards.filter((card) => card.image),
+      8,
+      (card) => fetchJson(`${API}/cards/${encodeURIComponent(card.id)}`),
+    );
+
     const taken = {};
-    for (const card of setCards) {
+    for (const card of details) {
+      if (!card.rarity || card.rarity === 'None') continue;
+      if ((taken[card.rarity] ?? 0) >= CARDS_PER_RARITY) continue;
+      const imageUrl = card.image + IMAGE_SUFFIX;
+      if (!(await imageWorks(imageUrl))) continue;
       taken[card.rarity] = (taken[card.rarity] ?? 0) + 1;
-      if (taken[card.rarity] > CARDS_PER_RARITY) continue;
       cards.push({
-        setCode: code,
-        number: card.number,
+        setCode: set.id,
+        number: card.localId,
         name: card.name,
-        supertype: card.supertype,
+        supertype: card.category,
         rarity: card.rarity,
-        imageUrl: card.images.small,
+        imageUrl,
       });
     }
+    console.log(`${set.name}: ${Object.values(taken).reduce((a, b) => a + b, 0)} cards`);
   }
 
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
-  fs.writeFileSync(OUTPUT, JSON.stringify({ source: SOURCE, sets, cards }, null, 2) + '\n');
+  fs.writeFileSync(OUTPUT, JSON.stringify({ source: API, sets, cards }, null, 2) + '\n');
   console.log(
     `Wrote ${sets.length} sets and ${cards.length} cards to ${path.relative(process.cwd(), OUTPUT)}`,
   );

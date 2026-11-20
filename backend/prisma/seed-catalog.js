@@ -3,25 +3,30 @@
 // Prices and stock are made up but stable: running the seed twice gives the same catalog.
 const snapshot = require('./data/card-snapshot.json');
 
-// Starting price of a near-mint card by rarity. Unknown rarities use DEFAULT_PRICE.
+// Starting price of a near-mint card by rarity, matched without regard to case because the
+// source writes rarities inconsistently ("Ultra Rare", "Double rare"). Unknown rarities use
+// DEFAULT_PRICE.
 const RARITY_PRICES = {
-  Common: 0.5,
-  Uncommon: 1,
-  Rare: 2.5,
-  'Double Rare': 4,
-  'Rare Holo': 8,
-  'Rare Holo V': 3,
-  'Rare Holo VSTAR': 4,
-  'Rare Holo VMAX': 6,
-  'Radiant Rare': 5,
-  'Ultra Rare': 12,
-  'Illustration Rare': 15,
-  'Rare Ultra': 20,
-  'Hyper Rare': 40,
-  'Rare Secret': 45,
-  'Special Illustration Rare': 60,
+  common: 0.5,
+  uncommon: 1,
+  rare: 2.5,
+  'double rare': 4,
+  'holo rare': 8,
+  'holo rare v': 3,
+  'holo rare vstar': 4,
+  'holo rare vmax': 6,
+  'radiant rare': 5,
+  'ultra rare': 12,
+  'illustration rare': 15,
+  'hyper rare': 40,
+  'secret rare': 45,
+  'special illustration rare': 60,
 };
 const DEFAULT_PRICE = 2;
+
+function rarityPrice(rarity) {
+  return RARITY_PRICES[rarity.toLowerCase()] ?? DEFAULT_PRICE;
+}
 
 // Cards from the 1999 Base set are vintage and cost more.
 const VINTAGE_SETS = new Set(['base1']);
@@ -37,7 +42,7 @@ const CONDITION_FACTORS = {
   poor: 0.3,
 };
 
-// Short codes for the stock code, for example SV3PT5-199-NM.
+// Short codes for the stock code, for example SV03.5-199-NM.
 const CONDITION_CODES = {
   mint: 'M',
   near_mint: 'NM',
@@ -87,7 +92,7 @@ function buildCatalog(data = snapshot) {
     const set = setsByCode.get(card.setCode);
     if (!set) throw new Error(`Card ${card.name} refers to unknown set ${card.setCode}`);
 
-    const base = RARITY_PRICES[card.rarity] ?? DEFAULT_PRICE;
+    const base = rarityPrice(card.rarity);
     const nearMintPrice = VINTAGE_SETS.has(card.setCode) ? base * VINTAGE_MULTIPLIER : base;
 
     for (const condition of conditionsFor(card, nearMintPrice)) {
@@ -142,4 +147,4 @@ async function seedCatalog(prisma, data = snapshot) {
   return { categories: categories.length, products: products.length };
 }
 
-module.exports = { buildCatalog, seedCatalog, RARITY_PRICES, CONDITION_FACTORS };
+module.exports = { buildCatalog, seedCatalog, rarityPrice, RARITY_PRICES, CONDITION_FACTORS };
