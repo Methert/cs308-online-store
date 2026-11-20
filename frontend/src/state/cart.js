@@ -1,12 +1,10 @@
-import { cards } from '../data/cards.js';
-
-const catalog = new Map(cards.map(card => [card.id, card]));
+import { findCard } from './catalog.js';
 
 export function normalizeCart(items) {
   if (!Array.isArray(items)) return [];
   const quantities = new Map();
   for (const item of items) {
-    const card = catalog.get(item?.id);
+    const card = findCard(item?.id);
     if (!card?.stock || !Number.isSafeInteger(item?.quantity) || item.quantity <= 0) continue;
     quantities.set(card.id, Math.min(item.quantity, card.stock));
   }
@@ -14,7 +12,7 @@ export function normalizeCart(items) {
 }
 
 export function changeQuantity(items, id, delta) {
-  const card = catalog.get(id);
+  const card = findCard(id);
   if (!card || !Number.isSafeInteger(delta)) return items;
   const quantity = (items.find(item => item.id === id)?.quantity ?? 0) + delta;
   if (quantity < 0 || quantity > card.stock) return items;
@@ -27,7 +25,7 @@ export function changeQuantity(items, id, delta) {
 export function cartTotals(items) {
   return items.reduce((total, item) => ({
     count: total.count + item.quantity,
-    cents: total.cents + catalog.get(item.id).price * item.quantity,
+    cents: total.cents + (findCard(item.id)?.price ?? 0) * item.quantity,
   }), { count: 0, cents: 0 });
 }
 

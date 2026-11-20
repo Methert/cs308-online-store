@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Link } from 'react-router';
-import { cards } from '../data/cards.js';
 import { money } from '../state/cart.js';
+import { findCard } from '../state/catalog.js';
 import { useShop } from '../state/ShopContext.jsx';
 import { CardImage } from './ProductCard.jsx';
 import { Modal } from './Modal.jsx';
@@ -20,7 +20,8 @@ export function CartDialog({ open, onClose }) {
     </div>
     <div className="cart-items">
       {cart.length ? cart.map(item => {
-        const card = cards.find(card => card.id === item.id);
+        const card = findCard(item.id);
+        if (!card) return null;
         return <article className="cart-row" key={item.id}>
           <CardImage card={card} />
           <div>

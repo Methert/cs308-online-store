@@ -41,8 +41,8 @@ export function App() {
     <footer className="footer">
       <div className="shell footer-inner">
         <Brand />
-        <p>CS 308 storefront prototype. Placeholder art, sample prices and stock.</p>
-        <a className="art-credit" href="https://www.pokemon.com/us/pokemon-tcg/scarlet-violet-151">Pokémon TCG: Scarlet &amp; Violet 151</a>
+        <p>CS 308 student project, not affiliated with Nintendo or The Pokémon Company. Card images belong to their owners; prices and stock are sample values.</p>
+        <a className="art-credit" href="https://tcgdex.dev">Card data: TCGdex</a>
         <nav className="footer-links" aria-label="More pages">
           <Link to="/orders">My orders</Link>
           <Link to="/manage">Staff: manage products</Link>
