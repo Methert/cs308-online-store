@@ -30,7 +30,7 @@
       "name": "Alakazam",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/1/high.webp"
+      "imageUrl": "/images/cards/base1/1.webp"
     },
     {
       "setCode": "base1",
@@ -38,7 +38,7 @@
       "name": "Blastoise",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/2/high.webp"
+      "imageUrl": "/images/cards/base1/2.webp"
     },
     {
       "setCode": "base1",
@@ -46,7 +46,7 @@
       "name": "Chansey",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/3/high.webp"
+      "imageUrl": "/images/cards/base1/3.webp"
     },
     {
       "setCode": "base1",
@@ -54,7 +54,7 @@
       "name": "Arcanine",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/23/high.webp"
+      "imageUrl": "/images/cards/base1/23.webp"
     },
     {
       "setCode": "base1",
@@ -62,7 +62,7 @@
       "name": "Charmeleon",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/24/high.webp"
+      "imageUrl": "/images/cards/base1/24.webp"
     },
     {
       "setCode": "base1",
@@ -70,7 +70,7 @@
       "name": "Dewgong",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/25/high.webp"
+      "imageUrl": "/images/cards/base1/25.webp"
     },
     {
       "setCode": "base1",
@@ -78,7 +78,7 @@
       "name": "Abra",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/43/high.webp"
+      "imageUrl": "/images/cards/base1/43.webp"
     },
     {
       "setCode": "base1",
@@ -86,7 +86,7 @@
       "name": "Bulbasaur",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/44/high.webp"
+      "imageUrl": "/images/cards/base1/44.webp"
     },
     {
       "setCode": "base1",
@@ -94,7 +94,7 @@
       "name": "Caterpie",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/base/base1/45/high.webp"
+      "imageUrl": "/images/cards/base1/45.webp"
     },
     {
       "setCode": "sv03.5",
@@ -102,7 +102,7 @@
       "name": "Bulbasaur",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/001/high.webp"
+      "imageUrl": "/images/cards/sv03.5/001.webp"
     },
     {
       "setCode": "sv03.5",
@@ -110,7 +110,7 @@
       "name": "Ivysaur",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/002/high.webp"
+      "imageUrl": "/images/cards/sv03.5/002.webp"
     },
     {
       "setCode": "sv03.5",
@@ -118,7 +118,7 @@
       "name": "Venusaur ex",
       "supertype": "Pokemon",
       "rarity": "Double rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/003/high.webp"
+      "imageUrl": "/images/cards/sv03.5/003.webp"
     },
     {
       "setCode": "sv03.5",
@@ -126,7 +126,7 @@
       "name": "Charmander",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/004/high.webp"
+      "imageUrl": "/images/cards/sv03.5/004.webp"
     },
     {
       "setCode": "sv03.5",
@@ -134,7 +134,7 @@
       "name": "Charmeleon",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/005/high.webp"
+      "imageUrl": "/images/cards/sv03.5/005.webp"
     },
     {
       "setCode": "sv03.5",
@@ -142,7 +142,7 @@
       "name": "Charizard ex",
       "supertype": "Pokemon",
       "rarity": "Double rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/006/high.webp"
+      "imageUrl": "/images/cards/sv03.5/006.webp"
     },
     {
       "setCode": "sv03.5",
@@ -150,7 +150,7 @@
       "name": "Squirtle",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/007/high.webp"
+      "imageUrl": "/images/cards/sv03.5/007.webp"
     },
     {
       "setCode": "sv03.5",
@@ -158,7 +158,7 @@
       "name": "Wartortle",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/008/high.webp"
+      "imageUrl": "/images/cards/sv03.5/008.webp"
     },
     {
       "setCode": "sv03.5",
@@ -166,7 +166,7 @@
       "name": "Blastoise ex",
       "supertype": "Pokemon",
       "rarity": "Double rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/009/high.webp"
+      "imageUrl": "/images/cards/sv03.5/009.webp"
     },
     {
       "setCode": "sv03.5",
@@ -174,7 +174,7 @@
       "name": "Beedrill",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/015/high.webp"
+      "imageUrl": "/images/cards/sv03.5/015.webp"
     },
     {
       "setCode": "sv03.5",
@@ -182,7 +182,7 @@
       "name": "Raichu",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/026/high.webp"
+      "imageUrl": "/images/cards/sv03.5/026.webp"
     },
     {
       "setCode": "sv03.5",
@@ -190,7 +190,7 @@
       "name": "Nidoking",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/034/high.webp"
+      "imageUrl": "/images/cards/sv03.5/034.webp"
     },
     {
       "setCode": "sv03.5",
@@ -198,7 +198,7 @@
       "name": "Bulbasaur",
       "supertype": "Pokemon",
       "rarity": "Illustration rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/166/high.webp"
+      "imageUrl": "/images/cards/sv03.5/166.webp"
     },
     {
       "setCode": "sv03.5",
@@ -206,7 +206,7 @@
       "name": "Ivysaur",
       "supertype": "Pokemon",
       "rarity": "Illustration rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/167/high.webp"
+      "imageUrl": "/images/cards/sv03.5/167.webp"
     },
     {
       "setCode": "sv03.5",
@@ -214,7 +214,7 @@
       "name": "Charmander",
       "supertype": "Pokemon",
       "rarity": "Illustration rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/168/high.webp"
+      "imageUrl": "/images/cards/sv03.5/168.webp"
     },
     {
       "setCode": "sv03.5",
@@ -222,7 +222,7 @@
       "name": "Venusaur ex",
       "supertype": "Pokemon",
       "rarity": "Ultra Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/182/high.webp"
+      "imageUrl": "/images/cards/sv03.5/182.webp"
     },
     {
       "setCode": "sv03.5",
@@ -230,7 +230,7 @@
       "name": "Charizard ex",
       "supertype": "Pokemon",
       "rarity": "Ultra Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/183/high.webp"
+      "imageUrl": "/images/cards/sv03.5/183.webp"
     },
     {
       "setCode": "sv03.5",
@@ -238,7 +238,7 @@
       "name": "Blastoise ex",
       "supertype": "Pokemon",
       "rarity": "Ultra Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/184/high.webp"
+      "imageUrl": "/images/cards/sv03.5/184.webp"
     },
     {
       "setCode": "sv03.5",
@@ -246,7 +246,7 @@
       "name": "Venusaur ex",
       "supertype": "Pokemon",
       "rarity": "Special illustration rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/198/high.webp"
+      "imageUrl": "/images/cards/sv03.5/198.webp"
     },
     {
       "setCode": "sv03.5",
@@ -254,7 +254,7 @@
       "name": "Charizard ex",
       "supertype": "Pokemon",
       "rarity": "Special illustration rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/199/high.webp"
+      "imageUrl": "/images/cards/sv03.5/199.webp"
     },
     {
       "setCode": "sv03.5",
@@ -262,7 +262,7 @@
       "name": "Blastoise ex",
       "supertype": "Pokemon",
       "rarity": "Special illustration rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/200/high.webp"
+      "imageUrl": "/images/cards/sv03.5/200.webp"
     },
     {
       "setCode": "sv03.5",
@@ -270,7 +270,7 @@
       "name": "Mew ex",
       "supertype": "Pokemon",
       "rarity": "Hyper rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/205/high.webp"
+      "imageUrl": "/images/cards/sv03.5/205.webp"
     },
     {
       "setCode": "sv03.5",
@@ -278,7 +278,7 @@
       "name": "Switch",
       "supertype": "Trainer",
       "rarity": "Hyper rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/206/high.webp"
+      "imageUrl": "/images/cards/sv03.5/206.webp"
     },
     {
       "setCode": "sv03.5",
@@ -286,7 +286,7 @@
       "name": "Basic Psychic Energy",
       "supertype": "Energy",
       "rarity": "Hyper rare",
-      "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/207/high.webp"
+      "imageUrl": "/images/cards/sv03.5/207.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -294,7 +294,7 @@
       "name": "Oddish",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/001/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/001.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -302,7 +302,7 @@
       "name": "Gloom",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/002/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/002.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -310,7 +310,7 @@
       "name": "Bellossom",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/003/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/003.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -318,7 +318,7 @@
       "name": "Tangela",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/004/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/004.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -326,7 +326,7 @@
       "name": "Tangrowth",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/005/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/005.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -334,7 +334,7 @@
       "name": "Scyther",
       "supertype": "Pokemon",
       "rarity": "Common",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/006/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/006.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -342,7 +342,7 @@
       "name": "Yanmega",
       "supertype": "Pokemon",
       "rarity": "Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/009/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/009.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -350,7 +350,7 @@
       "name": "Carnivine",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/012/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/012.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -358,7 +358,7 @@
       "name": "Leafeon V",
       "supertype": "Pokemon",
       "rarity": "Holo Rare V",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/013/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/013.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -366,7 +366,7 @@
       "name": "Leafeon VSTAR",
       "supertype": "Pokemon",
       "rarity": "Holo Rare VSTAR",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/014/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/014.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -374,7 +374,7 @@
       "name": "Zarude",
       "supertype": "Pokemon",
       "rarity": "Holo Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/016/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/016.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -382,7 +382,7 @@
       "name": "Calyrex",
       "supertype": "Pokemon",
       "rarity": "Holo Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/017/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/017.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -390,7 +390,7 @@
       "name": "Charizard V",
       "supertype": "Pokemon",
       "rarity": "Holo Rare V",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/018/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/018.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -398,7 +398,7 @@
       "name": "Charizard VSTAR",
       "supertype": "Pokemon",
       "rarity": "Holo Rare VSTAR",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/019/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/019.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -406,7 +406,7 @@
       "name": "Radiant Charizard",
       "supertype": "Pokemon",
       "rarity": "Radiant Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/020/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/020.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -414,7 +414,7 @@
       "name": "Entei",
       "supertype": "Pokemon",
       "rarity": "Holo Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/021/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/021.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -422,7 +422,7 @@
       "name": "Simisear V",
       "supertype": "Pokemon",
       "rarity": "Holo Rare V",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/022/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/022.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -430,7 +430,7 @@
       "name": "Simisear VSTAR",
       "supertype": "Pokemon",
       "rarity": "Holo Rare VSTAR",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/023/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/023.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -438,7 +438,7 @@
       "name": "Salazzle",
       "supertype": "Pokemon",
       "rarity": "Uncommon",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/028/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/028.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -446,7 +446,7 @@
       "name": "Radiant Charjabug",
       "supertype": "Pokemon",
       "rarity": "Radiant Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/051/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/051.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -454,7 +454,7 @@
       "name": "Zeraora VMAX",
       "supertype": "Pokemon",
       "rarity": "Holo Rare VMAX",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/054/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/054.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -462,7 +462,7 @@
       "name": "Hatterene VMAX",
       "supertype": "Pokemon",
       "rarity": "Holo Rare VMAX",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/066/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/066.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -470,7 +470,7 @@
       "name": "Rayquaza VMAX",
       "supertype": "Pokemon",
       "rarity": "Holo Rare VMAX",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/101/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/101.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -478,7 +478,7 @@
       "name": "Rayquaza VMAX",
       "supertype": "Pokemon",
       "rarity": "Ultra Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/102/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/102.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -486,7 +486,7 @@
       "name": "Radiant Eternatus",
       "supertype": "Pokemon",
       "rarity": "Radiant Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/105/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/105.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -494,7 +494,7 @@
       "name": "Elesa's Sparkle",
       "supertype": "Trainer",
       "rarity": "Ultra Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/147/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/147.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -502,7 +502,7 @@
       "name": "Friends in Hisui",
       "supertype": "Trainer",
       "rarity": "Ultra Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/148/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/148.webp"
     },
     {
       "setCode": "swsh12.5",
@@ -510,7 +510,7 @@
       "name": "Pikachu",
       "supertype": "Pokemon",
       "rarity": "Secret Rare",
-      "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/160/high.webp"
+      "imageUrl": "/images/cards/swsh12.5/160.webp"
     }
   ]
 }

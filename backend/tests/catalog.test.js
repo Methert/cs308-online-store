@@ -150,9 +150,9 @@ describe('rarityPrice', () => {
 });
 
 describe('card images', () => {
-  test('every product in the real snapshot links to a card image', () => {
+  test('every product uses a card picture served by the backend', () => {
     for (const product of buildCatalog().products) {
-      expect(product.imageUrl).toMatch(/^https:\/\/assets\.tcgdex\.net\/.+\/high\.webp$/);
+      expect(product.imageUrl).toMatch(/^\/images\/cards\/.+\.webp$/);
     }
   });
 });

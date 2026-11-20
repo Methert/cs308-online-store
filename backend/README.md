@@ -62,8 +62,9 @@ Registration only creates **customers**. Staff accounts come from the seed scrip
 
 The seed also adds 3 card sets as categories (Base Set, 151, Crown Zenith) and 92 second-hand products: every card in near mint, valuable cards also in excellent condition, Base Set cards also as a played copy. 18 products are out of stock. Prices and stock are sample values; running the seed again updates them instead of adding duplicates.
 
-- The card facts (names, numbers, rarities, image links) are in `prisma/data/card-snapshot.json`, taken from [TCGdex](https://tcgdex.dev), an open, maintained Pokémon TCG database (MIT licensed data). To change the sets, edit `scripts/build-card-snapshot.js` and run `node scripts/build-card-snapshot.js`; it keeps only cards whose image link works.
-- Every product has an image: `products.image_url` links to the card picture on `assets.tcgdex.net`. The images are not stored in the repository; they belong to The Pokémon Company. Pages that show them should say the site is a student project not affiliated with Nintendo or The Pokémon Company.
+- The card facts (names, numbers, rarities) are in `prisma/data/card-snapshot.json`, and one picture per card (61 WebP files, about 5 MB) is in `public/images/cards/<set>/<number>.webp`. Both come from [TCGdex](https://tcgdex.dev), an open, maintained Pokémon TCG database (MIT licensed data). To change the sets, edit `scripts/build-card-snapshot.js` and run `node scripts/build-card-snapshot.js`; it downloads the pictures again and keeps only cards that have one.
+- Every product has a picture. `products.image_url` is a path such as `/images/cards/sv03.5/199.webp`, served by this API, so the frontend shows it as `<API address> + imageUrl` (for example `http://localhost:3000/images/cards/sv03.5/199.webp`). Nothing is loaded from other sites.
+- The pictures belong to The Pokémon Company. They are in this private repository for the course demo only; pages that show them should say the site is a student project not affiliated with Nintendo or The Pokémon Company.
 
 ## Schema changes
 

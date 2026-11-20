@@ -1,6 +1,7 @@
 // Builds the Express app: security settings, JSON parsing, routes and error handling.
 // It does NOT start the server (server.js does). Because of this split, tests can run the app
 // without opening a real port and without a real database.
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -46,6 +47,17 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
   const deps = { prisma, authenticate, optionalAuthenticate, requireRole, ROLES };
 
   // --- Routes ----------------------------------------------------------------
+  // Card pictures (public/images), for example /images/cards/sv03.5/199.webp.
+  // helmet only lets the API's own origin load files; the React app runs on another port, so this
+  // route allows cross-origin loading.
+  app.use(
+    '/images',
+    (req, res, next) => {
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      next();
+    },
+    express.static(path.join(__dirname, '..', 'public', 'images'), { maxAge: '7d' }),
+  );
   app.use('/api/health', createHealthRouter({ checkDatabase }));
   app.use(
     '/api/auth',
