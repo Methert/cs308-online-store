@@ -21,6 +21,9 @@ const { createProductService } = require('./services/product.service');
 const { createCategoryService } = require('./services/category.service');
 const { createProductRepository } = require('./repositories/product.repository');
 const { createCategoryRepository } = require('./repositories/category.repository');
+const { createReviewRouter } = require('./routes/reviews.routes');
+const { createReviewService } = require('./services/review.service');
+const { createReviewRepository } = require('./repositories/review.repository');
 const { ROLES } = require('./constants/roles');
 
 /**
@@ -40,6 +43,7 @@ function createApp({
   prisma = null,
   productRepository = prisma ? createProductRepository(prisma) : null,
   categoryRepository = prisma ? createCategoryRepository(prisma) : null,
+  reviewRepository = prisma ? createReviewRepository(prisma) : null,
   logger = console,
 }) {
   const app = express();
@@ -58,6 +62,7 @@ function createApp({
     saltRounds: config.bcryptRounds,
   });
   const productService = createProductService({ productRepository, categoryRepository });
+  const reviewService = createReviewService({ reviewRepository });
   const categoryService = createCategoryService({ categoryRepository });
 
   // Shared dependencies handed to the routers of the other team members.
@@ -85,6 +90,7 @@ function createApp({
   app.use('/api/orders', createOrderRouter(deps));
   app.use('/api/products', createProductRouter({ ...deps, productService }));
   app.use('/api/categories', createCategoryRouter({ ...deps, productService, categoryService }));
+  app.use('/api/reviews', createReviewRouter({ ...deps, reviewService }));
 
   // --- Last: unknown URLs and the error handler ------------------------------
   app.use(notFound);
