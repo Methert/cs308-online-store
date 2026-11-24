@@ -4,6 +4,7 @@ const { createApp } = require('../../src/app');
 const { createTokenService } = require('../../src/utils/tokenService');
 const { createInMemoryUserRepository } = require('./inMemoryUserRepository');
 const { createInMemoryCatalog } = require('./inMemoryCatalogRepositories');
+const { createInMemoryReviewRepository } = require('./inMemoryReviewRepository');
 
 const TEST_SECRET = 'test-secret-that-is-definitely-longer-than-32-chars';
 
@@ -27,18 +28,20 @@ function createTestApp({ config: configOverrides, checkDatabase, logger } = {}) 
   const userRepository = createInMemoryUserRepository();
   // Fake products and categories (tests/helpers/inMemoryCatalogRepositories.js).
   const catalog = createInMemoryCatalog();
+  const reviewRepository = createInMemoryReviewRepository();
   const app = createApp({
     config,
     userRepository,
     productRepository: catalog.productRepository,
     categoryRepository: catalog.categoryRepository,
+    reviewRepository,
     checkDatabase: checkDatabase ?? (async () => {}),
     logger: logger ?? silentLogger,
   });
   const tokenService = createTokenService(config.jwt);
   // "Authorization" header value for a user with this role, e.g. bearerFor('product_manager').
   const bearerFor = (role, id = 1) => `Bearer ${tokenService.sign({ id, role })}`;
-  return { app, config, userRepository, tokenService, catalog, bearerFor };
+  return { app, config, userRepository, tokenService, catalog, reviewRepository, bearerFor };
 }
 
 // Valid example data for the registration form. A test only writes the field it changes.
