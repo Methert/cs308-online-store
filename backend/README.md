@@ -2,7 +2,7 @@
 
 Node.js backend for the CS 308 online store. The database is Supabase (PostgreSQL), accessed through [Prisma](https://www.prisma.io) 7. The API uses Express 5.
 
-Ready so far: project skeleton, database connection, authentication (`/api/auth/*`), role checks, cart and orders (`/api/cart`, `/api/orders`), products and categories (`/api/products`, `/api/categories`), 250+ unit tests.
+Ready so far: project skeleton, database connection, authentication (`/api/auth/*`), role checks, cart and orders (`/api/cart`, `/api/orders`), products and categories (`/api/products`, `/api/categories`), deliveries and order status (`/api/deliveries`, `PATCH /api/orders/:id/status`), 400+ unit tests.
 
 ## Requirements
 
@@ -151,6 +151,13 @@ Success: `{ "data": ... }`. Failure: `{ "error": "short message" }`. Validation 
 
 URLs are lowercase and plural (`/api/products`). JSON fields are camelCase. Roles and order statuses use the database values: `product_manager`, `processing`, `in_transit`, `delivered`.
 
+### How errors are kept consistent
+
+- Check the body with `validateBody(schema)` and the query string with `validateQuery(schema)`; both answer `400 "Validation failed"` / `"Invalid query parameters"` with `details`.
+- Check URL ids with `parseId(req.params.id, 'Order id')` from `validators/common.js`. `abc`, `1.5`, `0` and numbers too large for the database give `400 "<Label> must be a positive whole number"`.
+- A request without a JSON body gets `req.body = {}` (set in `app.js`), so `const { x } = req.body` never crashes.
+- The error handler is a safety net for input that a route forgot to check: a missing record (Prisma `P2025`) gives `404`, a number too large for its column gives `400`, a value of the wrong type gives `400` and a warning in the server log. Anything else is a real bug: `500`, details only in the log.
+
 ## Authentication API
 
 All URLs start with `/api`. The frontend stores the `token` and sends `Authorization: Bearer <token>` on every request that needs a login. On any `401`, delete the token and send the user to the login page.
@@ -296,6 +303,64 @@ Response **201** `{ "data": { "product": { ... } } }`. Errors: `400` (invalid fi
 
 `POST /api/categories` with `name` (required), `description`, `setCode`, `series`, `releaseDate` (`YYYY-MM-DD`). `PATCH /api/categories/:id` takes the same fields (send `null` to clear one). A duplicate name or set code gives `409`. `DELETE` works only when no product uses the category, removed products included (`409` otherwise).
 
+## Deliveries and order status API (product manager)
+
+Requirement 12. Both endpoints need a `product_manager` token; everyone else gets `401` or `403`.
+
+### `GET /api/deliveries`
+
+The delivery list: one row per ordered product, from the `delivery_list` database view. Cancelled orders are left out. Oldest orders come first, because they should be shipped first.
+
+| Parameter | Values                                    | Default |
+| --------- | ----------------------------------------- | ------- |
+| `status`  | `processing`, `in_transit` or `delivered` | all     |
+| `page`    | 1, 2, ...                                 | `1`     |
+| `limit`   | 1–100                                     | `20`    |
+
+```json
+{
+  "data": {
+    "deliveries": [
+      {
+        "deliveryId": 14,
+        "orderId": 7,
+        "customerId": 3,
+        "customerName": "Demo Customer",
+        "productId": 12,
+        "productName": "Charizard ex",
+        "quantity": 2,
+        "totalPrice": 259.8,
+        "deliveryAddress": "Orta Mahalle, Tuzla, Istanbul",
+        "status": "processing",
+        "completed": false,
+        "orderedAt": "2026-11-24T09:12:00.000Z"
+      }
+    ],
+    "pagination": { "page": 1, "limit": 20, "total": 1, "totalPages": 1 }
+  }
+}
+```
+
+`completed` is `true` once the order is delivered.
+
+### `PATCH /api/orders/:id/status`
+
+Body: `{ "status": "in_transit" }` or `{ "status": "delivered" }`. Response **200** `{ "data": { "order": { id, userId, status, totalPrice, deliveryAddress, createdAt, updatedAt } } }`.
+
+An order only moves forward, one step at a time: `processing → in_transit → delivered`.
+
+| Situation                                     | Answer                                                       |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| Skipping a step (`processing` → `delivered`)  | `409 An order in "processing" can only move to "in_transit"` |
+| Same status again                             | `409 The order is already in_transit`                        |
+| Order already delivered                       | `409 The order is already delivered`                         |
+| Order cancelled by the customer               | `409 A cancelled order cannot be shipped`                    |
+| The customer cancels at the same moment       | Only one of the two wins; the other gets `409`               |
+| `status` is `processing`, `cancelled` or else | `400` (cancelling is the customer's own action)              |
+| Unknown order                                 | `404 Order not found`                                        |
+
+The update is one `UPDATE ... WHERE id = ? AND status = ?`, so a status change and a customer's cancel can never both succeed.
+
 ## Adding a module (cart, products, reviews, ...)
 
 **1.** Create `src/routes/cart.routes.js`:
@@ -342,7 +407,9 @@ Available helpers: `authenticate` (login required, sets `req.user`), `optionalAu
 | Internal error details are never sent to the client                                          | `middleware/errorHandler.js`         |
 | Only product managers change products, stock and categories; customers never see the cost    | `routes/products.routes.js`          |
 | Stock changes are atomic and cannot go below 0, even with parallel requests                  | `repositories/product.repository.js` |
-| Invalid or too large ids give 400 before reaching the database                               | `validators/catalog.schemas.js`      |
+| Invalid or too large ids give 400 before reaching the database                               | `validators/common.js`               |
+| Every manager route is tested with every role (401 / 403 / allowed)                          | `tests/roleSeparation.test.js`       |
+| Order status only moves forward; a status change and a cancel cannot both win                | `services/delivery.service.js`       |
 | Security headers (helmet) and CORS limited to our frontend                                   | `app.js`                             |
 | The server refuses to start with a missing or weak setting (`JWT_SECRET` < 32 chars)         | `config/env.js`                      |
 

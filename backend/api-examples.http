@@ -157,3 +157,43 @@ Content-Type: application/json
   "series": "Scarlet & Violet",
   "releaseDate": "2024-01-26"
 }
+
+### ---------------------------------------------------------------------------
+### Deliveries and order status (product manager, uses pmLogin above)
+### Place an order as a customer first, so the list is not empty.
+### ---------------------------------------------------------------------------
+
+### Delivery list, oldest orders first
+GET {{base}}/deliveries
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+
+### Only orders that still have to be shipped
+GET {{base}}/deliveries?status=processing
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+
+### Ship order 1
+PATCH {{base}}/orders/1/status
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "in_transit"
+}
+
+### Mark order 1 as delivered
+PATCH {{base}}/orders/1/status
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "delivered"
+}
+
+### Skipping a step or going back: returns 409
+PATCH {{base}}/orders/1/status
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "in_transit"
+}
