@@ -17,6 +17,10 @@ const express = require('express');
 const { AppError }          = require('../utils/AppError');
 const { ROLES }             = require('../constants/roles');
 const { createInvoiceService } = require('../services/invoice.service');
+// Shared validation, same as every other route (added by Berat for consistent API errors).
+const { validateBody }      = require('../middleware/validateBody');
+const { parseId }           = require('../validators/common');
+const { placeOrderSchema }  = require('../validators/order.schemas');
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -28,10 +32,9 @@ const ORDER_INCLUDE = {
   },
 };
 
+// Same id rule as every other route: "abc", "1e3" and ids too large for the database give 400.
 function parseOrderId(raw) {
-  const id = Number(raw);
-  if (!Number.isInteger(id) || id <= 0) throw new AppError(400, 'Invalid order ID');
-  return id;
+  return parseId(raw, 'Order id');
 }
 
 function createOrderRouter({ prisma, authenticate, requireRole }) {
@@ -41,15 +44,13 @@ function createOrderRouter({ prisma, authenticate, requireRole }) {
   const invoiceService = prisma ? createInvoiceService({ prisma }) : null;
 
   // POST /api/orders  – place order from the logged-in user's cart (mock payment)
-  router.post('/', async (req, res) => {
+  // placeOrderSchema checks deliveryAddress, paymentInfo.cardHolder and paymentInfo.cardNumber
+  // (spaces already removed) before the code below runs.
+  router.post('/', validateBody(placeOrderSchema), async (req, res) => {
     const { deliveryAddress, paymentInfo } = req.body;
-    if (!deliveryAddress) throw new AppError(400, 'deliveryAddress is required');
-    if (!paymentInfo)     throw new AppError(400, 'paymentInfo is required');
 
-    // Extract and validate card fields for the Payment record (req. 17).
-    if (!paymentInfo.cardHolder) throw new AppError(400, 'paymentInfo.cardHolder is required');
-    const rawCard = String(paymentInfo.cardNumber ?? '').replace(/\s/g, '');
-    if (rawCard.length < 4)      throw new AppError(400, 'paymentInfo.cardNumber is required');
+    // Card fields for the Payment record (req. 17).
+    const rawCard   = paymentInfo.cardNumber;
     const cardLast4 = rawCard.slice(-4);
     const cardHash  = crypto.createHash('sha256').update(rawCard).digest('hex');
 

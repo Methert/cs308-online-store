@@ -122,7 +122,7 @@ describe('POST /api/cart/items', () => {
       .send({ quantity: 1 });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/productId/);
+    expect(res.body.details.map((d) => d.field)).toContain('productId');
   });
 
   test('returns 400 when quantity is zero or negative', async () => {
@@ -134,7 +134,7 @@ describe('POST /api/cart/items', () => {
       .send({ productId: 1, quantity: 0 });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/quantity/);
+    expect(res.body.details.map((d) => d.field)).toContain('quantity');
   });
 
   test('returns 404 when the product does not exist', async () => {
@@ -210,7 +210,7 @@ describe('PUT /api/cart/items/:productId', () => {
       .send({ quantity: -1 });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/quantity/);
+    expect(res.body.details.map((d) => d.field)).toContain('quantity');
   });
 
   test('removes the item and returns 204 when quantity is 0', async () => {
@@ -315,7 +315,7 @@ describe('POST /api/cart/merge', () => {
       .send({});
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/guestToken/);
+    expect(res.body.details.map((d) => d.field)).toContain('guestToken');
   });
 
   test('returns { merged: 0 } when the guest cart is empty', async () => {
