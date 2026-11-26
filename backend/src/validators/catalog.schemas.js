@@ -4,7 +4,7 @@
 // Create and update bodies use z.strictObject: an unknown field is an error instead of being
 // dropped silently, so a typo such as "stockQuantiy" is reported to the frontend.
 const { z } = require('zod');
-const { AppError } = require('../utils/AppError');
+const { MAX_DB_INT, parseId } = require('./common');
 
 // The values of the card_condition enum in prisma/schema.prisma, best to worst.
 const CARD_CONDITIONS = Object.freeze(['mint', 'near_mint', 'excellent', 'good', 'played', 'poor']);
@@ -21,10 +21,6 @@ const DEFAULT_SORT = 'name_asc';
 
 // Status filter of the product manager's list.
 const PRODUCT_STATUSES = Object.freeze(['active', 'inactive', 'all']);
-
-// PostgreSQL "integer" columns hold at most this value. A bigger id would make the database
-// throw, so it is rejected here as a bad request instead of becoming a 500 error.
-const MAX_DB_INT = 2147483647;
 
 // Money columns are DECIMAL(10, 2): at most 8 digits before the point and 2 after it.
 const MAX_MONEY = 99999999.99;
@@ -273,7 +269,8 @@ const updateStockSchema = z
 const releaseDate = z
   .string({ error: 'Release date must be text in YYYY-MM-DD form' })
   .trim()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Release date must be in YYYY-MM-DD form')
+  // abort: when the form is wrong, don't also report "not a real date" for the same value.
+  .regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'Release date must be in YYYY-MM-DD form', abort: true })
   .refine(isRealDate, { error: 'Release date is not a real date' })
   .transform((value) => new Date(`${value}T00:00:00.000Z`))
   .nullable()
@@ -315,21 +312,8 @@ function unknownFieldMessage(issue, hint) {
     : `Unknown field: ${fields}`;
 }
 
-// --- URL ids -----------------------------------------------------------------
-
-// Turns the ":id" of a URL into a number. "abc", "1.5", "-3", "0" and ids larger than the
-// database can hold give a 400 error instead of reaching the database.
-function parseId(value, label = 'Id') {
-  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
-    throw new AppError(400, `${label} must be a positive whole number`);
-  }
-  const id = Number(value);
-  if (id < 1 || id > MAX_DB_INT) {
-    throw new AppError(400, `${label} must be a positive whole number`);
-  }
-  return id;
-}
-
+// parseId (for ":id" in URLs) now lives in ./common.js and is re-exported here so the product
+// and category routes keep working unchanged.
 module.exports = {
   CARD_CONDITIONS,
   PRODUCT_SORTS,

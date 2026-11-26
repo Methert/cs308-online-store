@@ -10,6 +10,14 @@
 // stores in localStorage). After login, the frontend calls /merge once and discards the token.
 const express = require('express');
 const { AppError } = require('../utils/AppError');
+// Shared validation, same as every other route (added by Berat for consistent API errors).
+const { validateBody } = require('../middleware/validateBody');
+const { parseId } = require('../validators/common');
+const {
+  addCartItemSchema,
+  updateCartItemSchema,
+  mergeCartSchema,
+} = require('../validators/order.schemas');
 
 function createCartRouter({ prisma, authenticate, optionalAuthenticate }) {
   const router = express.Router();
@@ -55,14 +63,8 @@ function createCartRouter({ prisma, authenticate, optionalAuthenticate }) {
     res.json({ data: { items: cart?.items ?? [] } });
   });
 
-  router.post('/items', optionalAuthenticate, async (req, res) => {
-    const { productId, quantity = 1 } = req.body;
-    if (!productId || !Number.isInteger(productId) || productId <= 0) {
-      throw new AppError(400, 'productId must be a positive integer');
-    }
-    if (!Number.isInteger(quantity) || quantity <= 0) {
-      throw new AppError(400, 'quantity must be a positive integer');
-    }
+  router.post('/items', optionalAuthenticate, validateBody(addCartItemSchema), async (req, res) => {
+    const { productId, quantity } = req.body;
 
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product || !product.isActive) throw new AppError(404, 'Product not found');
@@ -87,12 +89,9 @@ function createCartRouter({ prisma, authenticate, optionalAuthenticate }) {
     res.status(201).json({ data: item });
   });
 
-  router.put('/items/:productId', optionalAuthenticate, async (req, res) => {
-    const productId = Number(req.params.productId);
+  router.put('/items/:productId', optionalAuthenticate, validateBody(updateCartItemSchema), async (req, res) => {
+    const productId = parseId(req.params.productId, 'Product id');
     const { quantity } = req.body;
-    if (!Number.isInteger(quantity) || quantity < 0) {
-      throw new AppError(400, 'quantity must be a non-negative integer');
-    }
 
     const result = await prisma.$transaction(async (tx) => {
       const cart = await getOrCreateCart(tx, cartOwner(req));
@@ -120,7 +119,7 @@ function createCartRouter({ prisma, authenticate, optionalAuthenticate }) {
   });
 
   router.delete('/items/:productId', optionalAuthenticate, async (req, res) => {
-    const productId = Number(req.params.productId);
+    const productId = parseId(req.params.productId, 'Product id');
     const owner = cartOwner(req);
     const cart = await prisma.cart.findUnique({
       where: req.user ? { userId: req.user.id } : { guestToken: req.headers['x-guest-token'] },
@@ -144,9 +143,8 @@ function createCartRouter({ prisma, authenticate, optionalAuthenticate }) {
   });
 
   // Called once right after login (req. 4): merge guest cart items into the user's cart.
-  router.post('/merge', authenticate, async (req, res) => {
+  router.post('/merge', authenticate, validateBody(mergeCartSchema), async (req, res) => {
     const { guestToken } = req.body;
-    if (!guestToken) throw new AppError(400, 'guestToken is required');
 
     const guestCart = await prisma.cart.findUnique({
       where: { guestToken },

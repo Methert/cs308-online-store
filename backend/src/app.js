@@ -24,6 +24,9 @@ const { createCategoryRepository } = require('./repositories/category.repository
 const { createReviewRouter } = require('./routes/reviews.routes');
 const { createReviewService } = require('./services/review.service');
 const { createReviewRepository } = require('./repositories/review.repository');
+const { createDeliveryRepository } = require('./repositories/delivery.repository');
+const { createDeliveryService } = require('./services/delivery.service');
+const { createDeliveryRouter, createOrderStatusRouter } = require('./routes/deliveries.routes');
 const { ROLES } = require('./constants/roles');
 
 /**
@@ -34,6 +37,7 @@ const { ROLES } = require('./constants/roles');
  * @param {object} [options.prisma]        client for the other modules (cart, orders, ...)
  * @param {object} [options.productRepository]   default: built from prisma; tests pass a fake
  * @param {object} [options.categoryRepository]  default: built from prisma; tests pass a fake
+ * @param {object} [options.deliveryRepository]  default: built from prisma; tests pass a fake
  * @param {object} [options.logger]
  */
 function createApp({
@@ -44,6 +48,7 @@ function createApp({
   productRepository = prisma ? createProductRepository(prisma) : null,
   categoryRepository = prisma ? createCategoryRepository(prisma) : null,
   reviewRepository = prisma ? createReviewRepository(prisma) : null,
+  deliveryRepository = prisma ? createDeliveryRepository(prisma) : null,
   logger = console,
 }) {
   const app = express();
@@ -52,6 +57,13 @@ function createApp({
   app.use(helmet()); // security headers (also hides X-Powered-By)
   app.use(cors({ origin: config.clientOrigins })); // only our frontend may call the API
   app.use(express.json({ limit: '100kb' })); // turns the JSON body into req.body
+  // Without a JSON body (or with another Content-Type) Express leaves req.body undefined, and
+  // code like "const { quantity } = req.body" would crash with a 500. With an empty object the
+  // validation answers with a normal 400 instead.
+  app.use((req, res, next) => {
+    if (req.body === undefined) req.body = {};
+    next();
+  });
 
   // --- Shared parts ----------------------------------------------------------
   const tokenService = createTokenService(config.jwt);
@@ -64,6 +76,7 @@ function createApp({
   const productService = createProductService({ productRepository, categoryRepository });
   const reviewService = createReviewService({ reviewRepository });
   const categoryService = createCategoryService({ categoryRepository });
+  const deliveryService = createDeliveryService({ deliveryRepository });
 
   // Shared dependencies handed to the routers of the other team members.
   // See "Adding a module" in the README.
@@ -87,7 +100,10 @@ function createApp({
     createAuthRouter({ authService, authenticate, rateLimitPerWindow: config.authRateLimit }),
   );
   app.use('/api/cart', createCartRouter(deps));
+  // The product manager's status route must come before Kerem's order router (see the file).
+  app.use('/api/orders', createOrderStatusRouter({ ...deps, deliveryService }));
   app.use('/api/orders', createOrderRouter(deps));
+  app.use('/api/deliveries', createDeliveryRouter({ ...deps, deliveryService }));
   app.use('/api/products', createProductRouter({ ...deps, productService }));
   app.use('/api/categories', createCategoryRouter({ ...deps, productService, categoryService }));
   app.use('/api/reviews', createReviewRouter({ ...deps, reviewService }));
