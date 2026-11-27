@@ -1,47 +1,34 @@
-import { normalizeCart } from './cart.js';
+export const AUTH_KEY = 'peko-cards-auth-token-v1';
+export const GUEST_KEY = 'peko-cards-guest-token-v1';
+export const BAG_EVENT_KEY = 'peko-cards-bag-updated-v1';
 
-// Keep the existing keys so bags and demo sessions survive the React migration.
-export const CART_KEY = 'peko-cards-bag-v1';
-export const USER_KEY = 'peko-cards-demo-user';
-
-export function readCart() {
-  try {
-    return normalizeCart(JSON.parse(window.localStorage.getItem(CART_KEY)));
-  } catch {
-    return [];
-  }
+export function readToken() {
+  try { return window.sessionStorage.getItem(AUTH_KEY) || null; }
+  catch { return null; }
 }
 
-export function saveCart(items) {
+export function saveToken(token) {
   try {
-    const serialized = items.length ? JSON.stringify(items) : null;
-    if (window.localStorage.getItem(CART_KEY) !== serialized) {
-      if (serialized) window.localStorage.setItem(CART_KEY, serialized);
-      else window.localStorage.removeItem(CART_KEY);
-    }
+    if (token) window.sessionStorage.setItem(AUTH_KEY, token);
+    else window.sessionStorage.removeItem(AUTH_KEY);
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-export function readUser() {
-  try {
-    const user = JSON.parse(window.sessionStorage.getItem(USER_KEY));
-    const name = user?.name ?? user?.displayName;
-    if (typeof name !== 'string' || !name.trim()) return null;
-    return { id: user.id ?? 'demo-user', name: name.trim().slice(0, 80), email: user.email ?? '' };
-  } catch {
-    return null;
-  }
+export function readGuestToken() {
+  try { return window.localStorage.getItem(GUEST_KEY) || null; }
+  catch { return null; }
 }
 
-export function saveUser(user) {
+export function saveGuestToken(token) {
   try {
-    if (user) window.sessionStorage.setItem(USER_KEY, JSON.stringify(user));
-    else window.sessionStorage.removeItem(USER_KEY);
+    if (token) window.localStorage.setItem(GUEST_KEY, token);
+    else window.localStorage.removeItem(GUEST_KEY);
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
+}
+
+export function announceBag(owner) {
+  try { window.localStorage.setItem(BAG_EVENT_KEY, JSON.stringify({ owner, change: crypto.randomUUID() })); }
+  catch { /* Server data stays authoritative if cross-tab notifications are blocked. */ }
 }

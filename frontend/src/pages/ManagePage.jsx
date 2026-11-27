@@ -7,12 +7,14 @@ import {
   stockStatus, stockSummary, updateProduct, updateStock,
 } from '../state/inventory.js';
 import './pages.css';
+import { useShop } from '../state/ShopContext.jsx';
+import { Loading } from '../components/RequestState.jsx';
 
 const statusClass = { 'In stock': 'ok', 'Low stock': 'low', 'Out of stock': 'out' };
 
 // Staff screen for products (Req. 12) and stock.
-// TODO: only product managers should open this page when real accounts and roles exist.
 export function ManagePage() {
+  const { user, authStatus } = useShop();
   const [products, setProducts] = useState(readInventory);
   const [tab, setTab] = useState('products');
   // null = form closed, 'new' = adding, a product = editing that product
@@ -59,12 +61,18 @@ export function ManagePage() {
   const summary = stockSummary(products);
   const stockRows = onlyLow ? products.filter(product => product.stock <= LOW_STOCK) : products;
 
+  if (authStatus === 'loading') return <Loading>Checking staff access...</Loading>;
+  if (!user || user.role !== 'product_manager') return <section className="page empty">
+    <h1>Product manager access required</h1><p>Sign in with a product manager account to open this page.</p>
+    {!user && <Link className="secondary" to="/sign-in" state={{ from: '/manage' }}>Sign in</Link>}
+  </section>;
+
   return <section className="page" aria-labelledby="manage-title">
     <Link className="back-link" to="/">← Back to shop</Link>
     <div className="catalog-heading">
       <div>
         <h1 id="manage-title">Manage products</h1>
-        <p>Changes are saved in this browser. The shop page will use them when it is connected to the products API.</p>
+        <p>Inventory preview. Changes here are saved in this browser and do not update the shop server.</p>
       </div>
     </div>
     <div className="filters tabs" role="group" aria-label="Management section">

@@ -1,12 +1,10 @@
 import { useSyncExternalStore } from 'react';
-import { cards as sampleCards, rarityLabels } from '../data/cards.js';
+import { rarityLabels } from '../data/cards.js';
+import { API_URL, request } from './api.js';
+export { API_URL } from './api.js';
 
-// The cards the shop sells. It starts with the sample cards in data/cards.js and switches to the
-// backend's products once GET /api/products answers. The bag, the catalog and checkout all read
-// cards from here, so they always agree on prices and stock.
-
-// Address of the backend; set VITE_API_URL in frontend/.env to use another one.
-export const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+// Public catalog shared by the shop and product labels. Network failures stay visible;
+// failed requests never substitute browser demo products for server records.
 
 const CONDITION_LABELS = {
   mint: 'Mint', near_mint: 'Near mint', excellent: 'Excellent', good: 'Good', played: 'Played', poor: 'Poor',
@@ -14,8 +12,9 @@ const CONDITION_LABELS = {
 // Backgrounds behind a card picture while it loads, by card set.
 const SET_TONES = { base1: '#f3e2c4', 'sv03.5': '#dce8ce', 'swsh12.5': '#e2ddf0' };
 
-let state = { cards: sampleCards, source: 'sample' };
-let byId = new Map(sampleCards.map(card => [card.id, card]));
+let state = { cards: [], source: 'idle' };
+let byId = new Map();
+let pending;
 const listeners = new Set();
 
 function publish(next) {
@@ -32,7 +31,7 @@ export function findCard(id) {
   return byId.get(id);
 }
 
-// Where the cards came from: "sample" (data/cards.js), "api" or "error" (API unreachable).
+// idle, loading, api (confirmed server data), or error.
 export function catalogSource() {
   return state.source;
 }
@@ -58,7 +57,7 @@ export function toCard(product) {
     id: product.id,
     name: product.name,
     rarity: product.rarity,
-    rarityLabel: product.rarity,
+    rarityLabel: rarityLabels[product.rarity] ?? product.rarity,
     condition: product.condition,
     conditionLabel: CONDITION_LABELS[product.condition] ?? product.condition,
     price: Math.round(Number(product.price) * 100),
@@ -68,31 +67,38 @@ export function toCard(product) {
     setName: product.category?.name,
     setCode: product.category?.setCode,
     soldCount: product.soldCount ?? 0,
+    serial: product.serialNumber,
+    warranty: product.warrantyStatus,
+    distributor: product.distributor,
     imageUrl: product.imageUrl ? `${API_URL}${product.imageUrl}` : null,
     tone: SET_TONES[product.category?.setCode] ?? '#eadbef',
   };
 }
 
-// Loads every product page from the API. On failure the sample cards stay and the source
-// becomes "error", so the shop still works offline.
-export async function loadCatalog(fetchImpl = globalThis.fetch) {
+// A failed refresh retains previous cards for browsing. Purchase actions stay disabled
+// until a successful retry confirms current server data.
+async function fetchCatalog(fetchImpl) {
+  publish({ ...state, source: 'loading', error: '' });
   try {
     const products = [];
     for (let page = 1, totalPages = 1; page <= totalPages; page++) {
-      const res = await fetchImpl(`${API_URL}/api/products?limit=100&page=${page}&sort=name_asc`);
-      if (!res.ok) throw new Error(`GET /api/products answered ${res.status}`);
-      const { data } = await res.json();
+      const data = await request(`/products?limit=100&page=${page}&sort=name_asc`, { fetchImpl });
       products.push(...data.products);
       totalPages = data.pagination?.totalPages ?? 1;
     }
     publish({ cards: products.map(toCard), source: 'api' });
   } catch (err) {
-    publish({ cards: state.source === 'api' ? state.cards : sampleCards, source: 'error', error: err.message });
+    publish({ cards: state.cards, source: 'error', error: err.message });
   }
   return state;
 }
 
-// For tests: go back to the sample cards.
-export function resetCatalog() {
-  publish({ cards: sampleCards, source: 'sample' });
+export function loadCatalog(fetchImpl = globalThis.fetch) {
+  if (!pending) pending = fetchCatalog(fetchImpl).finally(() => { pending = null; });
+  return pending;
+}
+
+// Reset between tests without loading demo records in the running application.
+export function resetCatalog(cards = []) {
+  publish({ cards, source: cards.length ? 'api' : 'idle' });
 }

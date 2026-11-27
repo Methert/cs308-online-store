@@ -25,7 +25,7 @@ export function changeQuantity(items, id, delta) {
 export function cartTotals(items) {
   return items.reduce((total, item) => ({
     count: total.count + item.quantity,
-    cents: total.cents + (findCard(item.id)?.price ?? 0) * item.quantity,
+    cents: total.cents + (item.card?.price ?? findCard(item.id)?.price ?? 0) * item.quantity,
   }), { count: 0, cents: 0 });
 }
 

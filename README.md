@@ -46,9 +46,9 @@ npm run dev:frontend
 
 Open the local address printed by Vite. Use `npm run test:frontend` for the frontend tests and `npm run build:frontend` for a production build.
 
-Sign in to the demo with `trainer@example.com` and `peko-demo`, or use Sign up to preview a chosen display name. Authentication currently simulates a session in the browser. The existing backend returns a public user's `name`, which the frontend uses for the account indicator.
+Start the API using the [backend setup guide](backend/README.md). Accounts, bags, checkout, order history and reviews now use the backend. The seed creates `customer@pokeshop.test` / `Customer123` with delivered demo purchases for testing ratings. Sign up creates a real customer in the configured development database.
 
-The demo bag saves product IDs and quantities in localStorage and restores them against the current sample catalog. Existing bags and demo sessions from the reference version retain their storage keys. Reconciliation between a guest bag and an existing account bag is pending team instruction.
+The server stores guest and account bags and combines them after login. See the [frontend guide](frontend/README.md) for configuration, merge behavior, request states and manual test steps.
 
 ## Documents
 

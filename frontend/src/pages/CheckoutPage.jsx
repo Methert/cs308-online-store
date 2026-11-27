@@ -2,15 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CardImage } from '../components/ProductCard.jsx';
 import { money } from '../state/cart.js';
-import { catalogSource, findCard, getCards } from '../state/catalog.js';
-import { bankDecision, checkStock, createOrder, emptyCheckout, formatCardNumber, formatExpiry, validateCheckout } from '../state/checkout.js';
-import { lowerStock, readInventory, saveInventory } from '../state/inventory.js';
-import { formatDate, readOrders, saveOrders } from '../state/orders.js';
+import { findCard, loadCatalog } from '../state/catalog.js';
+import { emptyCheckout, formatCardNumber, formatExpiry, validateCheckout } from '../state/checkout.js';
+import { formatDate } from '../state/orders.js';
+import { fromServerOrder } from '../state/orders-api.js';
+import { Loading, RequestError } from '../components/RequestState.jsx';
 import { useShop } from '../state/ShopContext.jsx';
 import './pages.css';
 
-// how long the fake bank "thinks" before answering
-export const BANK_DELAY = 1500;
 
 // used to focus the first wrong field
 const fieldOrder = ['fullName', 'address', 'city', 'postalCode', 'cardName', 'cardNumber', 'expiry', 'cvv'];
@@ -24,31 +23,25 @@ function Field({ id, label, wide = false, error, ...inputProps }) {
 }
 
 export function CheckoutPage() {
-  const { cart, cents, user, updateQuantity } = useShop();
+  const { cart, cents, user, placeOrder, authStatus, cartStatus, cartBusy, mergePending } = useShop();
   const [fields, setFields] = useState(emptyCheckout);
   const [errors, setErrors] = useState({});
-  const [stockProblems, setStockProblems] = useState([]);
+  const [orderError, setOrderError] = useState('');
   const [paying, setPaying] = useState(false);
   const [result, setResult] = useState(null);
   const [retry, setRetry] = useState(false);
   const resultHeading = useRef(null);
-  const bankTimer = useRef(null);
-
-  // stop the fake bank if the customer leaves the page while it is waiting
-  useEffect(() => () => window.clearTimeout(bankTimer.current), []);
+  const pending = useRef(false);
 
   useEffect(() => {
     if (result) resultHeading.current?.focus();
   }, [result]);
 
   // bag rows with the same name and price the shop shows
-  const items = cart.filter(item => findCard(item.id)).map(item => {
-    const card = findCard(item.id);
+  const items = cart.filter(item => item.card ?? findCard(item.id)).map(item => {
+    const card = item.card ?? findCard(item.id);
     return { id: card.id, name: card.name, price: card.price, quantity: item.quantity, card };
   });
-  // Cards from the backend carry their own stock; the sample cards use the management page's
-  // saved inventory.
-  const fromApi = catalogSource() === 'api';
 
   function updateField(event) {
     const { name } = event.target;
@@ -59,8 +52,9 @@ export function CheckoutPage() {
     setFields({ ...fields, [name]: value });
   }
 
-  function pay(event) {
+  async function pay(event) {
     event.preventDefault();
+    if (pending.current || cartBusy || cartStatus !== 'ready' || mergePending) return;
     const formErrors = validateCheckout(fields);
     setErrors(formErrors);
     const firstWrong = fieldOrder.find(name => formErrors[name]);
@@ -69,29 +63,27 @@ export function CheckoutPage() {
       return;
     }
 
-    // the stock may have changed on the management page, so check the saved inventory
-    const problems = checkStock(items, fromApi ? getCards() : readInventory());
-    setStockProblems(problems);
-    if (problems.length > 0) return;
-
-    // TODO: send the payment and the order to the backend instead of the fake bank
+    if (items.some(item => item.quantity > Math.min(item.card.stock, 99))) {
+      setOrderError('Some quantities exceed the available stock or the 99-copy limit. Reduce them in your bag before checkout.');
+      return;
+    }
+    pending.current = true;
+    setOrderError('');
     setPaying(true);
-    bankTimer.current = window.setTimeout(() => {
-      const decision = bankDecision(fields.cardNumber);
-      setPaying(false);
-      if (!decision.approved) {
-        setResult({ approved: false, message: decision.message });
-        return;
-      }
-      const orders = readOrders();
-      const order = createOrder({ items, fields, orders, user });
-      saveOrders([...orders, order]);
-      // TODO: with backend cards the stock only drops once orders go to POST /api/orders.
-      if (!fromApi) saveInventory(lowerStock(readInventory(), items));
-      // empty the bag
-      for (const item of items) updateQuantity(item.id, -item.quantity);
+    try {
+      const data = await placeOrder({
+        deliveryAddress: `${fields.fullName.trim()}, ${fields.address.trim()}, ${fields.city.trim()} ${fields.postalCode.trim()}`,
+        paymentInfo: { cardHolder: fields.cardName.trim(), cardNumber: fields.cardNumber.replace(/\s/g, '') },
+      });
+      const order = { ...fromServerOrder(data), cardLast4: fields.cardNumber.replace(/\s/g, '').slice(-4) };
+      setFields(emptyCheckout);
       setResult({ approved: true, order });
-    }, BANK_DELAY);
+      loadCatalog();
+    } catch (error) {
+      if (error.status === 402) setResult({ approved: false, message: error.message });
+      else setOrderError(error.status === 0
+        ? `${error.message} Check My orders before submitting again, because the order may have been received.` : error.message);
+    } finally { pending.current = false; setPaying(false); }
   }
 
   function tryAgain() {
@@ -113,7 +105,7 @@ export function CheckoutPage() {
           <span>{item.name} × {item.quantity}</span><span>{money(item.price * item.quantity)}</span>
         </div>)}
         <div className="receipt-row total"><span>Total paid</span><span>{money(order.total)}</span></div>
-        <p>Deliver to {order.customer}, {order.address}</p>
+        <p>Deliver to {order.address}</p>
         <p>Paid on {formatDate(order.date)} with the card ending in {order.cardLast4}</p>
       </div>
       <div className="result-actions">
@@ -136,7 +128,15 @@ export function CheckoutPage() {
   }
 
   let content;
-  if (items.length === 0) {
+  if (authStatus === 'loading') {
+    content = <Loading>Checking your account...</Loading>;
+  } else if (authStatus === 'error') {
+    content = <p className="account-error">Retry checking your account before checkout.</p>;
+  } else if (cartStatus === 'loading' && !paying) {
+    content = <Loading>Loading your bag...</Loading>;
+  } else if (cartStatus === 'error' || mergePending) {
+    content = <p className="field-help">Reload or combine your bag using the message above before checkout.</p>;
+  } else if (items.length === 0 && !paying) {
     content = <div className="empty sign-in-needed">
       <h2>Your bag is empty</h2><p>Add a card from the shop before you check out.</p>
       <Link className="secondary" to="/">Browse cards</Link>
@@ -147,14 +147,14 @@ export function CheckoutPage() {
       <h2>Sign in to place your order</h2>
       <p>Your bag is saved and will still be here after you sign in.</p>
       <div className="result-actions">
-        <Link className="add" to="/sign-in">Sign in</Link>
-        <Link className="secondary" to="/sign-up">Create an account</Link>
+        <Link className="add" to="/sign-in" state={{ from: '/checkout' }}>Sign in</Link>
+        <Link className="secondary" to="/sign-up" state={{ from: '/checkout' }}>Create an account</Link>
       </div>
     </div>;
   } else {
     content = <form className="checkout-layout" onSubmit={pay} noValidate>
       <div className="checkout-fields">
-        <fieldset className="panel">
+        <fieldset className="panel" disabled={paying}>
           <legend>Delivery</legend>
           <div className="form-grid">
             <Field id="fullName" label="Full name" wide autoComplete="name" value={fields.fullName} error={errors.fullName} onChange={updateField} />
@@ -163,17 +163,9 @@ export function CheckoutPage() {
             <Field id="postalCode" label="Postal code" autoComplete="postal-code" inputMode="numeric" maxLength="5" value={fields.postalCode} error={errors.postalCode} onChange={updateField} />
           </div>
         </fieldset>
-        <fieldset className="panel">
+        <fieldset className="panel" disabled={paying}>
           <legend>Payment</legend>
-          <div className="test-cards">
-            <strong>Test cards</strong> (mock bank, no real payment is made)
-            <ul>
-              <li><code>4242 4242 4242 4242</code> approved</li>
-              <li><code>4000 0000 0000 0002</code> declined</li>
-              <li><code>4000 0000 0000 9995</code> insufficient funds</li>
-            </ul>
-            <p>Use any future expiry date and any 3-digit CVV.</p>
-          </div>
+          <div className="test-cards"><strong>School project payment simulation</strong><p>Use sample card details only, such as 4242 4242 4242 4242, a future expiry date and a 3-digit CVV. No real payment is made.</p></div>
           <div className="form-grid">
             <Field id="cardName" label="Name on card" wide autoComplete="cc-name" value={fields.cardName} error={errors.cardName} onChange={updateField} />
             <Field id="cardNumber" label="Card number" wide className="card-input" autoComplete="cc-number" inputMode="numeric" maxLength="19"
@@ -197,9 +189,8 @@ export function CheckoutPage() {
         <div className="summary-row"><span>Subtotal</span><span>{money(cents)}</span></div>
         <div className="summary-row"><span>Shipping</span><span>Free</span></div>
         <div className="summary-row total"><span>Total</span><span>{money(cents)}</span></div>
-        {stockProblems.length > 0 && <p className="account-error" role="alert">{stockProblems.join(' ')} Please update your bag.</p>}
-        <button className="add pay-button" type="submit" disabled={paying}>Pay {money(cents)}</button>
-        <p className="bank-status" role="status">{paying ? 'Contacting your bank…' : ''}</p>
+        <button className="add pay-button" type="submit" disabled={paying || cartBusy || cartStatus !== 'ready' || mergePending}>{paying ? 'Placing order...' : `Pay ${money(cents)}`}</button>
+        <p className="bank-status" role="status">{paying ? 'Placing your order...' : ''}</p>
       </aside>
     </form>;
   }
@@ -209,6 +200,7 @@ export function CheckoutPage() {
     <div className="catalog-heading">
       <div><h1 id="checkout-title">Checkout</h1><p>Enter your delivery address and card to place the order.</p></div>
     </div>
+    {orderError && <><RequestError message={orderError} /><Link to="/orders">Check My orders</Link></>}
     {content}
   </section>;
 }

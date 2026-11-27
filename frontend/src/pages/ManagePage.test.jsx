@@ -3,14 +3,18 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { expect, test, vi } from 'vitest';
+import { api, customer } from '../test/api-fixture.js';
 import { App } from '../App.jsx';
 import { readInventory } from '../state/inventory.js';
 import { ShopProvider } from '../state/ShopContext.jsx';
 
-function renderManage() {
-  return render(<StrictMode><MemoryRouter initialEntries={['/manage']}>
+async function renderManage() {
+  api.signIn({ ...customer, role: 'product_manager' });
+  const view = render(<StrictMode><MemoryRouter initialEntries={['/manage']}>
     <ShopProvider><App /></ShopProvider>
   </MemoryRouter></StrictMode>);
+  await screen.findByRole('heading', { name: 'Manage products', exact: true });
+  return view;
 }
 
 // the number under a summary box label, "Low stock" is also used in the table so only look at <p>
@@ -20,7 +24,7 @@ function statValue(label) {
 
 test('a new product is checked and then added to the list', async () => {
   const user = userEvent.setup();
-  renderManage();
+  await renderManage();
   expect(screen.getAllByRole('rowheader')).toHaveLength(8);
   await user.click(screen.getByRole('button', { name: 'Add product' }));
   const form = within(screen.getByRole('dialog', { name: 'Add a product' }));
@@ -51,7 +55,7 @@ test('a new product is checked and then added to the list', async () => {
 
 test('editing a product keeps it in place with the new price', async () => {
   const user = userEvent.setup();
-  renderManage();
+  await renderManage();
   await user.click(screen.getByRole('button', { name: 'Edit Pikachu' }));
   const form = within(screen.getByRole('dialog', { name: 'Edit Pikachu' }));
   expect(form.getByLabelText('Price ($)').value).toBe('22.50');
@@ -67,7 +71,7 @@ test('editing a product keeps it in place with the new price', async () => {
 test('deleting a product asks for confirmation first', async () => {
   const user = userEvent.setup();
   const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
-  renderManage();
+  await renderManage();
   await user.click(screen.getByRole('button', { name: 'Delete Charmander' }));
   expect(screen.getByRole('rowheader', { name: 'Charmander' })).toBeTruthy();
   await user.click(screen.getByRole('button', { name: 'Delete Charmander' }));
@@ -79,7 +83,7 @@ test('deleting a product asks for confirmation first', async () => {
 
 test('the stock tab shows totals, filters low stock and saves new quantities', async () => {
   const user = userEvent.setup();
-  renderManage();
+  await renderManage();
   await user.click(screen.getByRole('button', { name: 'Stock' }));
   expect(statValue('Cards in stock')).toBe('28');
   expect(statValue('Low stock')).toBe('2');
@@ -98,4 +102,11 @@ test('the stock tab shows totals, filters low stock and saves new quantities', a
   expect(screen.getAllByRole('rowheader').map(cell => cell.textContent)).toEqual(['Squirtle', 'Charmander']);
   expect(statValue('Cards in stock')).toBe('31');
   expect(readInventory().find(product => product.id === 170).stock).toBe(2);
+});
+
+test('a customer cannot open the management preview', async () => {
+  api.signIn(customer);
+  render(<StrictMode><MemoryRouter initialEntries={['/manage']}><ShopProvider><App /></ShopProvider></MemoryRouter></StrictMode>);
+  expect(await screen.findByRole('heading', { name: 'Product manager access required' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Add product' })).toBeNull();
 });

@@ -1,5 +1,7 @@
-import { afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { installApiFixture } from './api-fixture.js';
+import { resetCatalog, toCard } from '../state/catalog.js';
 
 Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
   configurable: true,
@@ -14,8 +16,14 @@ Object.defineProperty(HTMLDialogElement.prototype, 'close', {
 });
 window.scrollTo = vi.fn();
 
+beforeEach(() => {
+  const api = installApiFixture();
+  resetCatalog(api.products.map(toCard));
+});
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
   window.sessionStorage.clear();
+  vi.unstubAllGlobals();
 });
