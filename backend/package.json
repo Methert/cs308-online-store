@@ -16,7 +16,8 @@
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test:db": "node --test tests/db/*.test.mjs"
+    "test:db": "node --test tests/db/*.test.mjs",
+    "test:concurrency": "node scripts/concurrency-check.js"
   },
   "type": "commonjs",
   "private": true,
