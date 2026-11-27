@@ -1,21 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { ProductForm } from '../components/ProductForm.jsx';
 import { money } from '../state/cart.js';
-import {
-  addProduct, conditionLabels, deleteProduct, LOW_STOCK, readInventory, saveInventory,
-  stockStatus, stockSummary, updateProduct, updateStock,
-} from '../state/inventory.js';
+import { loadCatalog } from '../state/catalog.js';
+import { conditionLabels, isWholeNumber, LOW_STOCK, stockStatus, stockSummary } from '../state/inventory.js';
+import { fromServerProduct, toServerProduct } from '../state/products-api.js';
 import './pages.css';
 import { useShop } from '../state/ShopContext.jsx';
-import { Loading } from '../components/RequestState.jsx';
+import { Loading, RequestError } from '../components/RequestState.jsx';
 
 const statusClass = { 'In stock': 'ok', 'Low stock': 'low', 'Out of stock': 'out' };
 
-// Staff screen for products (Req. 12) and stock.
+// every product, also the ones that were taken off sale (100 per page is the API limit)
+async function loadProducts(authorizedRequest, signal) {
+  const products = [];
+  for (let page = 1, totalPages = 1; page <= totalPages; page++) {
+    const data = await authorizedRequest(`/products/manage?status=all&limit=100&page=${page}`, { signal });
+    products.push(...data.products);
+    totalPages = data.pagination?.totalPages ?? 1;
+  }
+  return products.map(fromServerProduct);
+}
+
+// Staff screen for products (Req. 12) and stock, saved through the products API.
 export function ManagePage() {
-  const { user, authStatus } = useShop();
-  const [products, setProducts] = useState(readInventory);
+  const { user, authStatus, authorizedRequest } = useShop();
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [resource, setResource] = useState({ status: 'loading', error: '' });
+  const [reload, setReload] = useState(0);
   const [tab, setTab] = useState('products');
   // null = form closed, 'new' = adding, a product = editing that product
   const [editing, setEditing] = useState(null);
@@ -24,42 +37,104 @@ export function ManagePage() {
   const [drafts, setDrafts] = useState({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const isManager = user?.role === 'product_manager';
 
-  function save(nextProducts, text) {
-    // TODO: send the change to the products API instead of localStorage
-    setProducts(nextProducts);
-    setError(saveInventory(nextProducts) ? '' : 'Your browser could not save the change. It will be lost after a refresh.');
+  useEffect(() => {
+    if (!isManager || authStatus !== 'ready') return;
+    const controller = new AbortController();
+    setResource({ status: 'loading', error: '' });
+    Promise.all([
+      loadProducts(authorizedRequest, controller.signal),
+      authorizedRequest('/categories', { signal: controller.signal }),
+    ])
+      .then(([list, categoryData]) => {
+        if (controller.signal.aborted) return;
+        setProducts(list);
+        setCategories(categoryData.categories);
+        setResource({ status: 'ready', error: '' });
+      })
+      .catch(err => { if (!controller.signal.aborted) setResource({ status: 'error', error: err.message }); });
+    return () => controller.abort();
+  }, [isManager, user?.id, authStatus, authorizedRequest, reload]);
+
+  // put the product the server sent back into the list (or add it when it is new)
+  function showSaved(saved, text) {
+    const product = fromServerProduct(saved);
+    setProducts(current => (current.some(item => item.id === product.id)
+      ? current.map(item => (item.id === product.id ? product : item))
+      : [...current, product]));
+    setError('');
     setMessage(text);
+    // the shop page shows the same products, so load them again
+    loadCatalog();
   }
 
-  function saveProduct(values) {
-    if (editing === 'new') save(addProduct(products, values), `${values.name.trim()} was added.`);
-    else save(updateProduct(products, editing.id, values), `${values.name.trim()} was saved.`);
+  // ProductForm waits for this, if it throws the form shows the error
+  async function saveProduct(values) {
+    if (editing === 'new') {
+      const data = await authorizedRequest('/products', {
+        method: 'POST', body: { ...toServerProduct(values), stockQuantity: Number(values.stock) },
+      });
+      showSaved(data.product, `${data.product.name} was added.`);
+    } else {
+      let data = await authorizedRequest(`/products/${editing.id}`, { method: 'PATCH', body: toServerProduct(values) });
+      // the stock has its own request
+      if (Number(values.stock) !== editing.stock) {
+        data = await authorizedRequest(`/products/${editing.id}/stock`, { method: 'PATCH', body: { stockQuantity: Number(values.stock) } });
+      }
+      showSaved(data.product, `${data.product.name} was saved.`);
+    }
     setEditing(null);
   }
 
-  function removeProduct(product) {
-    if (!window.confirm(`Delete ${product.name}? This can not be undone.`)) return;
-    save(deleteProduct(products, product.id), `${product.name} was deleted.`);
+  // DELETE does not remove the row, it takes the product off sale (old orders still use it)
+  async function removeProduct(product) {
+    if (!window.confirm(`Take ${product.name} off sale? Customers will not see it in the shop.`)) return;
+    try {
+      const data = await authorizedRequest(`/products/${product.id}`, { method: 'DELETE' });
+      showSaved(data.product, `${product.name} was taken off sale.`);
+    } catch (err) {
+      setError(`${product.name}: ${err.message}`);
+      setMessage('');
+    }
   }
 
-  function saveStock(event, product) {
+  async function restoreProduct(product) {
+    try {
+      const data = await authorizedRequest(`/products/${product.id}`, { method: 'PATCH', body: { isActive: true } });
+      showSaved(data.product, `${product.name} is on sale again.`);
+    } catch (err) {
+      setError(`${product.name}: ${err.message}`);
+      setMessage('');
+    }
+  }
+
+  async function saveStock(event, product) {
     event.preventDefault();
     const value = drafts[product.id] ?? String(product.stock);
-    const result = updateStock(products, product.id, value);
-    if (result.error) {
-      setError(`${product.name}: ${result.error}`);
+    if (!isWholeNumber(value)) {
+      setError(`${product.name}: Stock must be a whole number (0 or more).`);
       setMessage('');
       return;
     }
-    save(result.products, `${product.name} now has ${Number(value)} in stock.`);
-    const nextDrafts = { ...drafts };
-    delete nextDrafts[product.id];
-    setDrafts(nextDrafts);
+    try {
+      const data = await authorizedRequest(`/products/${product.id}/stock`, { method: 'PATCH', body: { stockQuantity: Number(value) } });
+      showSaved(data.product, `${product.name} now has ${data.product.stockQuantity} in stock.`);
+      setDrafts(current => {
+        const next = { ...current };
+        delete next[product.id];
+        return next;
+      });
+    } catch (err) {
+      setError(`${product.name}: ${err.message}`);
+      setMessage('');
+    }
   }
 
-  const summary = stockSummary(products);
-  const stockRows = onlyLow ? products.filter(product => product.stock <= LOW_STOCK) : products;
+  // products that are off sale are not counted in the stock tab
+  const onSale = products.filter(product => product.isActive);
+  const summary = stockSummary(onSale);
+  const stockRows = onlyLow ? onSale.filter(product => product.stock <= LOW_STOCK) : onSale;
 
   if (authStatus === 'loading') return <Loading>Checking staff access...</Loading>;
   if (!user || user.role !== 'product_manager') return <section className="page empty">
@@ -72,8 +147,9 @@ export function ManagePage() {
     <div className="catalog-heading">
       <div>
         <h1 id="manage-title">Manage products</h1>
-        <p>Inventory preview. Changes here are saved in this browser and do not update the shop server.</p>
+        <p>Add products, change their details and keep the stock up to date.</p>
       </div>
+      <Link className="secondary" to="/deliveries">Delivery list</Link>
     </div>
     <div className="filters tabs" role="group" aria-label="Management section">
       <button type="button" aria-pressed={tab === 'products'} onClick={() => setTab('products')}>Products</button>
@@ -82,7 +158,10 @@ export function ManagePage() {
     <p className="save-message" role="status">{message}</p>
     {error && <p className="account-error" role="alert">{error}</p>}
 
-    {tab === 'products' && <>
+    {resource.status === 'loading' && <Loading>Loading products...</Loading>}
+    {resource.status === 'error' && <RequestError message={`Products could not be loaded. ${resource.error}`} onRetry={() => setReload(value => value + 1)} />}
+
+    {resource.status === 'ready' && tab === 'products' && <>
       <div className="toolbar">
         <h2>Products</h2>
         <button className="add" type="button" onClick={() => setEditing('new')}>Add product</button>
@@ -95,8 +174,8 @@ export function ManagePage() {
               <th scope="col" className="number">Price</th><th scope="col" className="number">Stock</th><th scope="col">Actions</th>
             </tr></thead>
             <tbody>
-              {products.map(product => <tr key={product.id}>
-                <th scope="row">{product.name}</th>
+              {products.map(product => <tr key={product.id} className={product.isActive ? '' : 'off-sale'}>
+                <th scope="row">{product.isActive ? product.name : <>{product.name} <span className="off-sale-label">(off sale)</span></>}</th>
                 <td>{product.model}</td>
                 <td>{product.serial}</td>
                 <td>{conditionLabels[product.condition]}</td>
@@ -104,7 +183,9 @@ export function ManagePage() {
                 <td className="number">{product.stock}</td>
                 <td><div className="row-actions">
                   <button className="small-button" type="button" onClick={() => setEditing(product)} aria-label={`Edit ${product.name}`}>Edit</button>
-                  <button className="small-button danger" type="button" onClick={() => removeProduct(product)} aria-label={`Delete ${product.name}`}>Delete</button>
+                  {product.isActive
+                    ? <button className="small-button danger" type="button" onClick={() => removeProduct(product)} aria-label={`Remove ${product.name}`}>Remove</button>
+                    : <button className="small-button" type="button" onClick={() => restoreProduct(product)} aria-label={`Put ${product.name} back on sale`}>Restore</button>}
                 </div></td>
               </tr>)}
             </tbody>
@@ -112,7 +193,7 @@ export function ManagePage() {
         </div>}
     </>}
 
-    {tab === 'stock' && <>
+    {resource.status === 'ready' && tab === 'stock' && <>
       <div className="stats">
         <div className="stat"><p>Products</p><strong>{summary.products}</strong></div>
         <div className="stat"><p>Cards in stock</p><strong>{summary.units}</strong></div>
@@ -155,6 +236,6 @@ export function ManagePage() {
     </>}
 
     {editing && <ProductForm key={editing === 'new' ? 'new' : editing.id} product={editing === 'new' ? null : editing}
-      products={products} onSave={saveProduct} onClose={() => setEditing(null)} />}
+      products={products} categories={categories} onSave={saveProduct} onClose={() => setEditing(null)} />}
   </section>;
 }

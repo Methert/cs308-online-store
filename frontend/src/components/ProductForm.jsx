@@ -1,22 +1,34 @@
 import { useState } from 'react';
-import { rarityLabels } from '../data/cards.js';
+import { fieldErrors } from '../state/api.js';
 import { conditionLabels, emptyProduct, productToValues, validateProduct } from '../state/inventory.js';
 import { Modal } from './Modal.jsx';
 
 // Add or edit one product. product is null when adding a new one.
-export function ProductForm({ product, products, onSave, onClose }) {
+// onSave sends the product to the server, the form waits for it.
+export function ProductForm({ product, products, categories, onSave, onClose }) {
   const [values, setValues] = useState(product ? productToValues(product) : emptyProduct);
   const [errors, setErrors] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   function updateValue(event) {
     setValues({ ...values, [event.target.name]: event.target.value });
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
+    if (saving) return;
     const formErrors = validateProduct(values, products, product ? product.id : null);
     setErrors(formErrors);
-    if (formErrors.length === 0) onSave(values);
+    if (formErrors.length > 0) return;
+    setSaving(true);
+    try {
+      await onSave(values);
+    } catch (error) {
+      // the server checks the product again, show what it did not accept
+      const messages = Object.values(fieldErrors(error));
+      setErrors(messages.length > 0 ? messages : [error.message]);
+      setSaving(false);
+    }
   }
 
   return <Modal open onClose={onClose} titleId="product-form-title" className="product-form-dialog">
@@ -30,6 +42,13 @@ export function ProductForm({ product, products, onSave, onClose }) {
         <div className="account-field">
           <label htmlFor="product-name">Name</label>
           <input id="product-name" name="name" value={values.name} onChange={updateValue} />
+        </div>
+        <div className="account-field">
+          <label htmlFor="product-category">Category</label>
+          <select id="product-category" name="categoryId" value={values.categoryId} onChange={updateValue}>
+            <option value="">Choose a card set</option>
+            {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
         </div>
         <div className="account-field">
           <label htmlFor="product-model">Model</label>
@@ -46,10 +65,9 @@ export function ProductForm({ product, products, onSave, onClose }) {
           </select>
         </div>
         <div className="account-field">
+          {/* the cards in the database have many rarities, so this is free text */}
           <label htmlFor="product-rarity">Rarity</label>
-          <select id="product-rarity" name="rarity" value={values.rarity} onChange={updateValue}>
-            {Object.entries(rarityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
+          <input id="product-rarity" name="rarity" placeholder="Illustration rare" value={values.rarity} onChange={updateValue} />
         </div>
         <div className="account-field">
           <label htmlFor="product-price">Price ($)</label>
@@ -63,7 +81,7 @@ export function ProductForm({ product, products, onSave, onClose }) {
           <label htmlFor="product-warranty">Warranty status</label>
           <input id="product-warranty" name="warranty" placeholder="30-day authenticity guarantee" value={values.warranty} onChange={updateValue} />
         </div>
-        <div className="account-field wide">
+        <div className="account-field">
           <label htmlFor="product-distributor">Distributor</label>
           <input id="product-distributor" name="distributor" value={values.distributor} onChange={updateValue} />
         </div>
@@ -74,7 +92,7 @@ export function ProductForm({ product, products, onSave, onClose }) {
       </div>
       <div className="form-actions">
         <button className="secondary" type="button" onClick={onClose}>Cancel</button>
-        <button className="add" type="submit">{product ? 'Save changes' : 'Add product'}</button>
+        <button className="add" type="submit" disabled={saving}>{product ? 'Save changes' : 'Add product'}</button>
       </div>
     </form>
   </Modal>;
