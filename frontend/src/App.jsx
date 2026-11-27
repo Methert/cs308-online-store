@@ -6,6 +6,7 @@ import { ProductDialog } from './components/ProductDialog.jsx';
 import { AccountPage } from './pages/AccountPage.jsx';
 import { CatalogPage } from './pages/CatalogPage.jsx';
 import { CheckoutPage } from './pages/CheckoutPage.jsx';
+import { DeliveriesPage } from './pages/DeliveriesPage.jsx';
 import { ManagePage } from './pages/ManagePage.jsx';
 import { OrdersPage } from './pages/OrdersPage.jsx';
 import { useShop } from './state/ShopContext.jsx';
@@ -37,6 +38,7 @@ export function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/manage" element={<ManagePage />} />
+        <Route path="/deliveries" element={<DeliveriesPage />} />
         <Route path="*" element={<section className="account"><h1>Page not found</h1><Link className="back-link" to="/">Back to shop</Link></section>} />
       </Routes>
     </main>

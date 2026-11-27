@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { money } from '../state/cart.js';
+import { loadCatalog } from '../state/catalog.js';
 import { filterOrders, formatDate, sortOrders, statusLabels, stepIndex, steps } from '../state/orders.js';
 import { fromServerOrder } from '../state/orders-api.js';
 import { Loading, RequestError } from '../components/RequestState.jsx';
@@ -9,7 +10,7 @@ import './pages.css';
 
 const statusFilters = ['all', 'processing', 'in_transit', 'delivered', 'cancelled'];
 
-function OrderCard({ order, isNew }) {
+function OrderCard({ order, isNew, cancelling, cancelError, onCancel }) {
   const current = stepIndex(order.status);
   return <article className={isNew ? 'order-card new-order' : 'order-card'} aria-labelledby={`order-${order.id}`}>
     <div className="order-top">
@@ -35,15 +36,25 @@ function OrderCard({ order, isNew }) {
       <span>Deliver to {order.address}</span>
       <strong>{money(order.total)}</strong>
     </div>
+    {/* an order can only be cancelled while it is still processing (Req. 14) */}
+    {order.status === 'processing' && <div className="order-actions">
+      <button className="secondary" type="button" disabled={cancelling} onClick={() => onCancel(order)} aria-label={`Cancel order #${order.id}`}>
+        {cancelling ? 'Cancelling...' : 'Cancel order'}
+      </button>
+    </div>}
+    {cancelError && <p className="account-error" role="alert">{cancelError}</p>}
   </article>;
 }
 
 export function OrdersPage() {
-  const { user, authStatus, authorizedRequest } = useShop();
+  const { user, authStatus, authorizedRequest, setMessage } = useShop();
   const location = useLocation();
   const [status, setStatus] = useState('all');
   const [resource, setResource] = useState({ status: 'loading', userId: null, orders: [] });
   const [reload, setReload] = useState(0);
+  // id of the order that is being cancelled right now
+  const [cancelling, setCancelling] = useState(null);
+  const [cancelError, setCancelError] = useState({ orderId: null, message: '' });
   useEffect(() => {
     if (!user || authStatus !== 'ready') return;
     const controller = new AbortController();
@@ -56,6 +67,29 @@ export function OrdersPage() {
   }, [user?.id, authStatus, authorizedRequest, reload]);
   // the checkout page sends the new order id so we can mark it
   const newOrderId = location.state?.newOrderId;
+
+  async function cancelOrder(order) {
+    if (!window.confirm(`Cancel order #${order.id}? The cards will go back to the shop.`)) return;
+    setCancelling(order.id);
+    setCancelError({ orderId: null, message: '' });
+    try {
+      await authorizedRequest(`/orders/${order.id}/cancel`, { method: 'PUT' });
+      // the answer has no items, so only change the status of the order we already show
+      setResource(current => ({
+        ...current,
+        orders: current.orders.map(item => (item.id === order.id ? { ...item, status: 'cancelled' } : item)),
+      }));
+      setMessage(`Order #${order.id} was cancelled.`);
+      // the stock went back up, so refresh the shop
+      loadCatalog();
+    } catch (error) {
+      setCancelError({ orderId: order.id, message: error.message });
+      // 409 means the order already moved on (for example it was shipped), so load the real status
+      if (error.status === 409) setReload(value => value + 1);
+    } finally {
+      setCancelling(null);
+    }
+  }
 
   if (authStatus === 'loading') return <Loading>Checking your account...</Loading>;
   if (authStatus === 'error') return <p className="account-error">Retry checking your account to see your orders.</p>;
@@ -91,7 +125,9 @@ export function OrdersPage() {
     </div>;
   } else {
     list = <div className="order-list">
-      {shown.map(order => <OrderCard key={order.id} order={order} isNew={order.id === newOrderId} />)}
+      {shown.map(order => <OrderCard key={order.id} order={order} isNew={order.id === newOrderId}
+        cancelling={cancelling === order.id} onCancel={cancelOrder}
+        cancelError={cancelError.orderId === order.id ? cancelError.message : ''} />)}
     </div>;
   }
 

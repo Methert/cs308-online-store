@@ -72,6 +72,24 @@ test('stock failure leaves the server bag intact and gives a useful error', asyn
   expect(api.accountCarts.get(99)).toEqual([{ id: 173, quantity: 2 }]);
 });
 
+test('a declined payment keeps the bag and the address so another card can be tried', async () => {
+  const user = userEvent.setup();
+  api.overrides.set('POST /api/orders', failure('Payment declined', 402));
+  signedInCheckout();
+  await readyBag(2);
+  await fillForm(user);
+  await user.click(screen.getByRole('button', { name: 'Pay $45.00' }));
+  expect(await screen.findByRole('heading', { name: 'Payment declined' })).toBeTruthy();
+  expect(screen.getByText('Payment declined', { selector: 'p', exact: false })).toBeTruthy();
+  await readyBag(2);
+  expect(api.accountCarts.get(99)).toEqual([{ id: 173, quantity: 2 }]);
+
+  await user.click(screen.getByRole('button', { name: 'Try another card' }));
+  expect(screen.getByLabelText('Full name').value).toBe('Demo Customer');
+  expect(screen.getByLabelText('Postal code').value).toBe('34710');
+  expect(screen.getByLabelText('Card number').value).toBe('');
+});
+
 test('login from checkout returns to checkout after merging the guest bag', async () => {
   const user = userEvent.setup();
   api.guestCarts.set(guestId, [{ id: 173, quantity: 1 }]);

@@ -79,6 +79,8 @@ a.add { display: inline-flex; align-items: center; justify-content: center; }
 .order-items li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .875rem; }
 .order-bottom { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; color: var(--muted); font-size: .875rem; }
 .order-bottom strong { color: var(--ink); font-size: 1.125rem; }
+.order-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.order-card .account-error { margin-top: 10px; }
 
 /* management */
 .tabs { margin: 22px 0 8px; padding-bottom: 13px; border-bottom: 1px solid var(--border); }
@@ -101,6 +103,11 @@ a.add { display: inline-flex; align-items: center; justify-content: center; }
 .stock-label.ok { color: #42624a; }
 .stock-label.low { color: #6b4e12; }
 .stock-label.out { color: #943b3b; }
+.data-table tr.off-sale > * { color: var(--muted); }
+.off-sale-label { font-weight: 400; }
+.data-table .address-cell { min-width: 200px; white-space: normal; }
+.id-note { display: block; color: var(--muted); font-size: .75rem; }
+.pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 16px; font-size: .875rem; }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .stat { padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .stat p { color: var(--muted); font-size: .75rem; }
