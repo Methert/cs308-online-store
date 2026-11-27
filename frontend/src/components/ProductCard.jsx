@@ -1,5 +1,5 @@
 import { money } from '../state/cart.js';
-import { rarityLabel } from '../state/catalog.js';
+import { rarityLabel, useCatalog } from '../state/catalog.js';
 import { useShop } from '../state/ShopContext.jsx';
 
 // The card's picture from the backend, or the placeholder for the sample cards.
@@ -14,12 +14,13 @@ export function cardLabel(card) {
 }
 
 export function AddToBagButton({ card }) {
-  const { cart, updateQuantity, setMessage } = useShop();
+  const { cart, updateQuantity, authStatus, cartStatus, cartBusy, mergePending } = useShop();
+  const { source } = useCatalog();
   const quantity = cart.find(item => item.id === card.id)?.quantity ?? 0;
   const label = !card.stock ? 'Sold out' : quantity >= card.stock ? 'All in bag' : 'Add to bag';
-  return <button className="add" type="button" disabled={quantity >= card.stock}
+  return <button className="add" type="button" disabled={quantity >= card.stock || quantity >= 99 || source !== 'api' || authStatus !== 'ready' || cartStatus !== 'ready' || cartBusy || mergePending}
     aria-label={`${label}: ${card.name}`}
-    onClick={() => { updateQuantity(card.id, 1); setMessage(`${card.name} added to your bag.`); }}>
+    onClick={() => updateQuantity(card.id, 1)}>
     {label}
   </button>;
 }

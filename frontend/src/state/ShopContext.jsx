@@ -1,77 +1,33 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { cartTotals, changeQuantity, normalizeCart } from './cart.js';
-import { subscribeCatalog, useCatalog } from './catalog.js';
-import { CART_KEY, readCart, readUser, saveCart, saveUser } from './storage.js';
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
+import { cartTotals } from './cart.js';
+import { createShopSession } from './session.js';
+import { BAG_EVENT_KEY, GUEST_KEY } from './storage.js';
 
 const ShopContext = createContext(null);
 
 export function ShopProvider({ children }) {
-  const [cart, setCart] = useState(readCart);
-  const cartRef = useRef(cart);
-  const [user, setUser] = useState(readUser);
-  const [storageError, setStorageError] = useState(false);
-  const [sessionError, setSessionError] = useState(false);
-  const [message, setMessage] = useState('');
-
+  const [session] = useState(createShopSession);
+  const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
   useEffect(() => {
-    if (!message) return;
-    const timer = window.setTimeout(() => setMessage(''), 3000);
+    session.start();
+    const focus = () => session.onFocus();
+    const storage = event => {
+      if (event.key === BAG_EVENT_KEY) session.onBagEvent(event);
+      if (event.key === GUEST_KEY || event.key === null) session.onGuestIdentityChange();
+    };
+    window.addEventListener('focus', focus);
+    window.addEventListener('storage', storage);
+    return () => {
+      window.removeEventListener('focus', focus);
+      window.removeEventListener('storage', storage);
+    };
+  }, [session]);
+  useEffect(() => {
+    if (!state.message) return;
+    const timer = window.setTimeout(() => session.setMessage(''), 5000);
     return () => window.clearTimeout(timer);
-  }, [message]);
-
-  // When the cards change (the API answered), drop bag items that no longer exist and cap
-  // quantities at the new stock.
-  useEffect(() => subscribeCatalog(() => {
-    const nextCart = normalizeCart(cartRef.current);
-    setStorageError(!saveCart(nextCart));
-    cartRef.current = nextCart;
-    setCart(nextCart);
-  }), []);
-  // Re-render totals and labels when the cards change.
-  useCatalog();
-
-  useEffect(() => {
-    function receiveCart(event) {
-      if (event.storageArea !== window.localStorage || (event.key !== CART_KEY && event.key !== null)) return;
-      try {
-        cartRef.current = normalizeCart(JSON.parse(event.newValue));
-      } catch {
-        cartRef.current = [];
-      }
-      setCart(cartRef.current);
-    }
-    window.addEventListener('storage', receiveCart);
-    return () => window.removeEventListener('storage', receiveCart);
-  }, []);
-
-  function updateQuantity(id, delta) {
-    const nextCart = changeQuantity(cartRef.current, id, delta);
-    // Save during the action so an immediate refresh cannot race a React effect.
-    setStorageError(!saveCart(nextCart));
-    cartRef.current = nextCart;
-    setCart(nextCart);
-  }
-
-  function signInDemo(name, email) {
-    // The backend public user uses "name". Its account-cart reconciliation policy is pending.
-    const nextUser = { id: `demo:${email.trim().toLowerCase()}`, name: name.trim(), email: email.trim().toLowerCase() };
-    setSessionError(!saveUser(nextUser));
-    setUser(nextUser);
-    setMessage(`Signed in as ${nextUser.name} in demo mode.`);
-  }
-
-  function signOut() {
-    setSessionError(!saveUser(null));
-    setUser(null);
-    setMessage('Signed out.');
-  }
-
-  return <ShopContext.Provider value={{
-    cart, user, storageError, sessionError, message, setMessage,
-    updateQuantity, signInDemo, signOut, ...cartTotals(cart),
-  }}>{children}</ShopContext.Provider>;
+  }, [session, state.message]);
+  return <ShopContext.Provider value={{ ...session, ...state, ...cartTotals(state.cart) }}>{children}</ShopContext.Provider>;
 }
 
-export function useShop() {
-  return useContext(ShopContext);
-}
+export function useShop() { return useContext(ShopContext); }

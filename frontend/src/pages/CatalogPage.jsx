@@ -1,8 +1,9 @@
 import { ProductCard } from '../components/ProductCard.jsx';
-import { rarityLabel, useCatalog } from '../state/catalog.js';
+import { loadCatalog, rarityLabel, useCatalog } from '../state/catalog.js';
+import { Loading, RequestError } from '../components/RequestState.jsx';
 
 export function CatalogPage({ filters, onFilters, onDetails }) {
-  const { cards, source } = useCatalog();
+  const { cards, source, error } = useCatalog();
   // One filter button per rarity the shop actually has, in the order the cards come.
   const rarities = new Map(cards.map(card => [card.rarity, rarityLabel(card)]));
   const query = filters.query.trim().toLowerCase();
@@ -43,14 +44,16 @@ export function CatalogPage({ filters, onFilters, onDetails }) {
         </select>
       </label>
     </div>
-    {source === 'error' && <p className="account-error" role="status">The shop server is not reachable, so sample cards are shown.</p>}
-    <p className="result-count" role="status">{results.length} {results.length === 1 ? 'card' : 'cards'}</p>
+    {(source === 'idle' || source === 'loading') && <Loading>Loading cards...</Loading>}
+    {source === 'error' && <RequestError message={`We could not load the shop. ${error}`} onRetry={() => loadCatalog()} />}
+    {source === 'api' && <p className="result-count" role="status">{results.length} {results.length === 1 ? 'card' : 'cards'}</p>}
     <div className="product-grid">
       {results.map(card => <ProductCard key={card.id} card={card} onDetails={onDetails} />)}
     </div>
-    {!results.length && <div className="empty">
-      <h3>No cards found</h3><p>Try another search or clear the rarity filter.</p>
-      <button className="secondary" type="button" onClick={() => onFilters({ query: '', rarity: 'all', descriptions: false })}>Clear filters</button>
+    {source === 'api' && !results.length && <div className="empty">
+      <h3>{cards.length ? 'No cards found' : 'No cards available yet'}</h3>
+      <p>{cards.length ? 'Try another search or clear the rarity filter.' : 'Please check back soon.'}</p>
+      {cards.length > 0 && <button className="secondary" type="button" onClick={() => onFilters({ query: '', rarity: 'all', descriptions: false })}>Clear filters</button>}
     </div>}
   </section>;
 }

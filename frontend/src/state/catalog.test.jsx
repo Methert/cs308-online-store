@@ -23,7 +23,7 @@ const abra = {
 // A fake fetch that serves the given pages of products.
 function fakeApi(pages) {
   return vi.fn(async url => {
-    const page = Number(new URL(url).searchParams.get('page'));
+    const page = Number(new URL(url, 'http://shop.test').searchParams.get('page'));
     return {
       ok: true,
       json: async () => ({ data: { products: pages[page - 1], pagination: { page, totalPages: pages.length } } }),
@@ -49,10 +49,11 @@ test('loads every page of products and switches the source to the API', async ()
   expect(getCards().map(card => card.name)).toEqual(['Charizard ex', 'Abra']);
 });
 
-test('keeps the sample cards when the API cannot be reached', async () => {
+test('does not invent sample products when the API cannot be reached', async () => {
+  resetCatalog();
   await act(() => loadCatalog(async () => { throw new Error('connection refused'); }));
   expect(catalogSource()).toBe('error');
-  expect(findCard(199).name).toBe('Charizard ex');
+  expect(getCards()).toEqual([]);
 });
 
 test('the bag drops sample cards and caps quantities once API cards arrive', async () => {
@@ -76,8 +77,9 @@ test('the shop page shows the API cards with their pictures and rarity filters',
   expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Abra']);
 });
 
-test('the shop page says when it falls back to sample cards', async () => {
+test('the shop page shows an API failure with a retry', async () => {
   await act(() => loadCatalog(async () => { throw new Error('offline'); }));
   render(<MemoryRouter><ShopProvider><App /></ShopProvider></MemoryRouter>);
-  expect(screen.getByText('The shop server is not reachable, so sample cards are shown.')).toBeTruthy();
+  expect(screen.getByRole('alert').textContent).toContain('We could not load the shop.');
+  expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
 });

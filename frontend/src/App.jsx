@@ -9,10 +9,11 @@ import { CheckoutPage } from './pages/CheckoutPage.jsx';
 import { ManagePage } from './pages/ManagePage.jsx';
 import { OrdersPage } from './pages/OrdersPage.jsx';
 import { useShop } from './state/ShopContext.jsx';
+import { BagStatus } from './components/BagStatus.jsx';
 
 export function App() {
   const location = useLocation();
-  const { message, sessionError } = useShop();
+  const { message, sessionError, user } = useShop();
   const [bagOpen, setBagOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [filters, setFilters] = useState({ query: '', rarity: 'all', sort: 'popular', descriptions: false });
@@ -27,7 +28,8 @@ export function App() {
     <a className="skip" href="#main">Skip to content</a>
     <Header onOpenBag={() => setBagOpen(true)} />
     <main className="shell" id="main">
-      {sessionError && <p className="account-error" role="status">Your browser could not save the demo session. Keep this page open to remain signed in.</p>}
+      {sessionError && <p className="account-error" role="status">{sessionError}</p>}
+      <BagStatus />
       <Routes>
         <Route path="/" element={<CatalogPage filters={filters} onFilters={patch => setFilters(current => ({ ...current, ...patch }))} onDetails={setSelectedCard} />} />
         <Route path="/sign-in" element={<AccountPage key="sign-in" />} />
@@ -45,7 +47,7 @@ export function App() {
         <a className="art-credit" href="https://tcgdex.dev">Card data: TCGdex</a>
         <nav className="footer-links" aria-label="More pages">
           <Link to="/orders">My orders</Link>
-          <Link to="/manage">Staff: manage products</Link>
+          {user?.role === 'product_manager' && <Link to="/manage">Staff: manage products</Link>}
         </nav>
       </div>
     </footer>
