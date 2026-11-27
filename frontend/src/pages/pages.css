@@ -106,6 +106,7 @@ a.add { display: inline-flex; align-items: center; justify-content: center; }
 .data-table tr.off-sale > * { color: var(--muted); }
 .off-sale-label { font-weight: 400; }
 .data-table .address-cell { min-width: 200px; white-space: normal; }
+.id-note { display: block; color: var(--muted); font-size: .75rem; }
 .pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 16px; font-size: .875rem; }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .stat { padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }

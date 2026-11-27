@@ -53,9 +53,12 @@ export function DeliveriesPage() {
     try {
       const data = await authorizedRequest(`/orders/${delivery.orderId}/status`, { method: 'PATCH', body: { status: next.status } });
       // the status belongs to the whole order, so every card of that order changes
+      // (completed is true when the order is delivered, like in the delivery_list view)
       setResource(current => ({
         ...current,
-        deliveries: current.deliveries.map(row => (row.orderId === delivery.orderId ? { ...row, status: data.order.status } : row)),
+        deliveries: current.deliveries.map(row => (row.orderId === delivery.orderId
+          ? { ...row, status: data.order.status, completed: data.order.status === 'delivered' }
+          : row)),
       }));
       setMessage(`Order #${delivery.orderId} is now ${statusLabels[data.order.status].toLowerCase()}.`);
     } catch (err) {
@@ -87,22 +90,25 @@ export function DeliveriesPage() {
     list = <div className="table-wrap">
       <table className="data-table">
         <thead><tr>
-          <th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Card</th><th scope="col" className="number">Qty</th>
-          <th scope="col" className="number">Total</th><th scope="col">Address</th><th scope="col">Ordered on</th>
-          <th scope="col">Status</th><th scope="col">Action</th>
+          <th scope="col">Delivery ID</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Card</th>
+          <th scope="col" className="number">Qty</th><th scope="col" className="number">Total</th><th scope="col">Address</th>
+          <th scope="col">Ordered on</th><th scope="col">Status</th><th scope="col">Completed</th><th scope="col">Action</th>
         </tr></thead>
         <tbody>
+          {/* Req. 12 lists these fields: delivery ID, customer ID, product ID, quantity, total price, address, completed */}
           {resource.deliveries.map(delivery => {
             const next = nextStep[delivery.status];
             return <tr key={delivery.deliveryId}>
-              <th scope="row">#{delivery.orderId}</th>
-              <td>{delivery.customerName}</td>
-              <td>{delivery.productName}</td>
+              <th scope="row">{delivery.deliveryId}</th>
+              <td>#{delivery.orderId}</td>
+              <td>{delivery.customerName}<small className="id-note">ID {delivery.customerId}</small></td>
+              <td>{delivery.productName}<small className="id-note">ID {delivery.productId}</small></td>
               <td className="number">{delivery.quantity}</td>
               <td className="number">{money(toCents(delivery.totalPrice))}</td>
               <td className="address-cell">{delivery.deliveryAddress}</td>
               <td>{formatDate(delivery.orderedAt)}</td>
               <td><span className={`status ${delivery.status}`}>{statusLabels[delivery.status]}</span></td>
+              <td>{delivery.completed ? 'Yes' : 'No'}</td>
               <td>{next && <button className="small-button" type="button" disabled={updating === delivery.orderId}
                 onClick={() => moveForward(delivery)} aria-label={`${next.label}: order #${delivery.orderId}, ${delivery.productName}`}>
                 {next.label}

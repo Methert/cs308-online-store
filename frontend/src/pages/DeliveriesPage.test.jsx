@@ -26,8 +26,9 @@ function fakeDeliveries({ totalPages = 1 } = {}) {
   return deliveries;
 }
 
+// the order number of every row, it is the cell after the delivery ID
 function orderCells() {
-  return screen.getAllByRole('rowheader').map(cell => cell.textContent);
+  return screen.getAllByRole('rowheader').map(cell => cell.nextSibling.textContent);
 }
 
 test('a customer cannot open the delivery list', async () => {
@@ -45,9 +46,14 @@ test('the delivery list shows every ordered card and filters by status', async (
   await screen.findAllByRole('rowheader');
   expect(orderCells()).toEqual(['#1002', '#1004', '#1004']);
   const first = screen.getAllByRole('row')[1];
+  // the fields requirement 12 asks for
+  expect(within(first).getByRole('rowheader').textContent).toBe('3');
+  expect(within(first).getByText('ID 99')).toBeTruthy();
+  expect(within(first).getByText('ID 173')).toBeTruthy();
   expect(within(first).getByText('In transit')).toBeTruthy();
   expect(within(first).getByText('$22.50')).toBeTruthy();
   expect(within(first).getByText(address)).toBeTruthy();
+  expect(within(first).getByText('No')).toBeTruthy();
   expect(api.calls.find(call => call.path === '/api/deliveries').options.headers.Authorization).toBe('Bearer token:7');
 
   await user.click(screen.getByRole('button', { name: 'Processing' }));
@@ -82,6 +88,7 @@ test('a delivered order has no next step', async () => {
   expect(await screen.findByText('Order #1002 is now delivered.')).toBeTruthy();
   const row = screen.getAllByRole('row')[1];
   expect(within(row).getByText('Delivered')).toBeTruthy();
+  expect(within(row).getByText('Yes')).toBeTruthy();
   expect(within(row).queryByRole('button')).toBeNull();
 });
 
