@@ -21,6 +21,9 @@ const { createProductService } = require('./services/product.service');
 const { createCategoryService } = require('./services/category.service');
 const { createProductRepository } = require('./repositories/product.repository');
 const { createCategoryRepository } = require('./repositories/category.repository');
+const { createReviewRouter } = require('./routes/reviews.routes');
+const { createReviewService } = require('./services/review.service');
+const { createReviewRepository } = require('./repositories/review.repository');
 const { createDeliveryRepository } = require('./repositories/delivery.repository');
 const { createDeliveryService } = require('./services/delivery.service');
 const { createDeliveryRouter, createOrderStatusRouter } = require('./routes/deliveries.routes');
@@ -44,6 +47,7 @@ function createApp({
   prisma = null,
   productRepository = prisma ? createProductRepository(prisma) : null,
   categoryRepository = prisma ? createCategoryRepository(prisma) : null,
+  reviewRepository = prisma ? createReviewRepository(prisma) : null,
   deliveryRepository = prisma ? createDeliveryRepository(prisma) : null,
   logger = console,
 }) {
@@ -70,6 +74,7 @@ function createApp({
     saltRounds: config.bcryptRounds,
   });
   const productService = createProductService({ productRepository, categoryRepository });
+  const reviewService = createReviewService({ reviewRepository });
   const categoryService = createCategoryService({ categoryRepository });
   const deliveryService = createDeliveryService({ deliveryRepository });
 
@@ -101,6 +106,7 @@ function createApp({
   app.use('/api/deliveries', createDeliveryRouter({ ...deps, deliveryService }));
   app.use('/api/products', createProductRouter({ ...deps, productService }));
   app.use('/api/categories', createCategoryRouter({ ...deps, productService, categoryService }));
+  app.use('/api/reviews', createReviewRouter({ ...deps, reviewService }));
 
   // --- Last: unknown URLs and the error handler ------------------------------
   app.use(notFound);
