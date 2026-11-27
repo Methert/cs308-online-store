@@ -26,7 +26,9 @@ Vite forwards `/api` and `/images` to `http://127.0.0.1:3000`. To use a differen
 
 Checkout now submits to the existing `/api/orders` endpoint and reads the resulting order history from the API. This keeps it consistent with the server bag: the frontend no longer clears the bag while saving a browser-only order. Payment is the backend's school-project simulation; use sample payment details only. Expiry and CVV are validated in the form but are not sent or stored. A connection loss during order submission tells the customer to check My orders before submitting again.
 
-The staff inventory screen remains a browser-only preview from the earlier frontend work. It is restricted in the UI to a product-manager account and explicitly says it does not update server inventory. Connecting that management form to the product API is outside these four tasks.
+In My orders, a customer can cancel an order while it is still processing (`PUT /api/orders/:id/cancel`). The cards go back into stock on the server.
+
+The product manager pages also use the API and are limited to product-manager accounts. `/manage` loads every product from `/api/products/manage`, including products taken off sale. It adds, edits, takes off sale or restores products and sets the stock through `/api/products`. `/deliveries` shows `/api/deliveries` (delivery ID, customer ID, product ID, quantity, total price, address and the completed flag) and moves an order from processing to in transit to delivered with `PATCH /api/orders/:id/status`.
 
 Old browser-only demo account and bag records are not sent to the API: their product IDs and account IDs are unrelated to the seeded server records. Server guest and account bags survive refreshes independently of that earlier demo data.
 
@@ -40,5 +42,7 @@ After following the backend guide and running its seed:
 4. Open My orders. The seed includes delivered purchases that can be used to test ratings. Find one of those card variants in the shop and open its details. Submit a rating with an optional comment; the rating updates immediately and the comment waits for manager approval.
 5. Create a customer using sample details, including a 10- or 11-digit sample tax ID. Refresh and verify the returned display name and bag.
 6. Stop the API and refresh the shop. Check loading and error messages, then restart it and use the retry controls.
+7. Place an order as the customer, then cancel it in My orders while it is still processing.
+8. Sign in with `pm@pokeshop.test` / `Manager123` and open **Staff: manage products**. Add a product, change a stock quantity and take a product off sale. Open **Delivery list** and move an order to in transit, then to delivered.
 
 Tests use HTTP fixtures in `src/test/api-fixture.js` that match the checked-in API response shapes. These fixtures are only imported by tests. The running app always calls the configured API.

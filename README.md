@@ -46,7 +46,7 @@ npm run dev:frontend
 
 Open the local address printed by Vite. Use `npm run test:frontend` for the frontend tests and `npm run build:frontend` for a production build.
 
-Start the API using the [backend setup guide](backend/README.md). Accounts, bags, checkout, order history and reviews now use the backend. The seed creates `customer@pokeshop.test` / `Customer123` with delivered demo purchases for testing ratings. Sign up creates a real customer in the configured development database.
+Start the API using the [backend setup guide](backend/README.md). Accounts, bags, checkout, order history, reviews, product management and the delivery list now use the backend. The seed creates `customer@pokeshop.test` / `Customer123` with delivered demo purchases for testing ratings, and `pm@pokeshop.test` / `Manager123` for the product manager pages. Sign up creates a real customer in the configured development database.
 
 The server stores guest and account bags and combines them after login. See the [frontend guide](frontend/README.md) for configuration, merge behavior, request states and manual test steps.
 
