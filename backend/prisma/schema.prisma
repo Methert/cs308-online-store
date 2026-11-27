@@ -39,6 +39,16 @@ enum CommentStatus {
   @@map("comment_status")
 }
 
+// A return request waits for the sales manager, who approves it after receiving the card
+// (requirement 16).
+enum ReturnStatus {
+  requested
+  approved
+  rejected
+
+  @@map("return_status")
+}
+
 // Physical condition of a second-hand card, best to worst.
 enum CardCondition {
   mint
@@ -66,8 +76,11 @@ model User {
 
   cart             Cart?
   orders           Order[]
-  reviews          Review[] @relation("ReviewAuthor")
-  moderatedReviews Review[] @relation("ReviewModerator")
+  reviews          Review[]        @relation("ReviewAuthor")
+  moderatedReviews Review[]        @relation("ReviewModerator")
+  returnRequests   ReturnRequest[] @relation("ReturnCustomer")
+  reviewedReturns  ReturnRequest[] @relation("ReturnReviewer")
+  wishList         WishListItem[]
 
   @@map("users")
 }
@@ -115,10 +128,11 @@ model Product {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
-  category   Category    @relation(fields: [categoryId], references: [id])
+  category   Category       @relation(fields: [categoryId], references: [id])
   cartItems  CartItem[]
   orderItems OrderItem[]
   reviews    Review[]
+  wishedBy   WishListItem[]
 
   @@index([categoryId])
   @@index([rarity])
@@ -216,9 +230,10 @@ model OrderItem {
   // The price actually paid, after any discount. Refunds use this value (requirement 16).
   unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-  review  Review?
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id])
+  review         Review?
+  returnRequests ReturnRequest[]
 
   @@index([orderId])
   @@index([productId])
@@ -245,4 +260,47 @@ model Review {
 
   @@index([productId])
   @@map("reviews")
+}
+
+// A customer asks to send back some of the cards on one order line (requirement 16). Returns are
+// selective, so one line can have several requests for part of its quantity; the API checks that
+// they never add up to more than was bought, that the order was delivered, and the 30-day window.
+// refundAmount is fixed when the request is made: quantity × the unit price actually paid, so a
+// later price change or discount does not change the refund.
+model ReturnRequest {
+  id           Int          @id @default(autoincrement())
+  orderItemId  Int          @map("order_item_id")
+  userId       Int          @map("user_id")
+  quantity     Int
+  reason       String?
+  status       ReturnStatus @default(requested)
+  refundAmount Decimal      @map("refund_amount") @db.Decimal(10, 2)
+  // The sales manager who approved or rejected it, and when.
+  reviewedBy   Int?         @map("reviewed_by")
+  reviewedAt   DateTime?    @map("reviewed_at") @db.Timestamptz
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  user      User      @relation("ReturnCustomer", fields: [userId], references: [id])
+  reviewer  User?     @relation("ReturnReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([orderItemId])
+  @@index([userId])
+  @@index([status])
+  @@map("return_requests")
+}
+
+// Cards a customer wants to hear about; the sales manager's discount notifies these users
+// (requirements 11 and 14). A card is on a user's list at most once.
+model WishListItem {
+  userId    Int      @map("user_id")
+  productId Int      @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+  @@index([productId])
+  @@map("wish_list_items")
 }

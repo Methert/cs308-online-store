@@ -66,6 +66,19 @@ The seed also adds 3 card sets as categories (Base Set, 151, Crown Zenith) and 9
 - Every product has a picture. `products.image_url` is a path such as `/images/cards/sv03.5/199.webp`, served by this API, so the frontend shows it as `<API address> + imageUrl` (for example `http://localhost:3000/images/cards/sv03.5/199.webp`). Nothing is loaded from other sites.
 - The pictures belong to The Pokémon Company. They are in this private repository for the course demo only; pages that show them should say the site is a student project not affiliated with Nintendo or The Pokémon Company.
 
+### Demo orders (also `npm run db:seed`)
+
+The demo customer gets four orders, each with a payment and an invoice, so every step can be shown without placing orders first:
+
+| Bank reference | Status     | Placed      | Shows                                                         |
+| -------------- | ---------- | ----------- | ------------------------------------------------------------- |
+| `SEED-1`       | delivered  | 10 days ago | reviews, and a return inside the 30-day window                |
+| `SEED-2`       | delivered  | 45 days ago | reviews; a return is refused because 30 days have passed      |
+| `SEED-3`       | in_transit | 3 days ago  | an open row on the delivery list                              |
+| `SEED-4`       | processing | 1 day ago   | cancelling an order                                           |
+
+They use the first five in-stock cards by stock code and do not lower stock. Running the seed again skips orders that already exist. The code is in `prisma/seed-orders.js`.
+
 ## Schema changes
 
 The schema is in [prisma/schema.prisma](prisma/schema.prisma) and is owned by Ahmet. To request a change, open an issue.
@@ -76,6 +89,24 @@ The schema is in [prisma/schema.prisma](prisma/schema.prisma) and is owned by Ah
 - Money columns use `Decimal`, never `Float`.
 - For concurrent updates such as stock changes, use `prisma.$transaction` and a conditional update (for example `where: { id, stockQuantity: { gte: quantity } }`).
 
+### Returns and wish list tables
+
+- `return_requests`: one row per return request on an order line. Returns are selective, so a line can have several requests for part of its quantity. `refund_amount` is set when the request is made (quantity × `order_items.unit_price`, the price actually paid). `status` is `requested`, `approved` or `rejected`; a decided request must have `reviewed_at` (and normally `reviewed_by`, the sales manager). The API checks the 30-day window, that the order was delivered and that requests never add up to more than was bought; on approval it restores stock in the same transaction.
+- `wish_list_items`: (user, product) pairs, at most once each. Used to notify users when the sales manager discounts a card.
+
+### Concurrency check
+
+`npm run test:concurrency` makes 5 customers order the last copy of a card at the same moment through the real `POST /api/orders`, 3 rounds. Exactly one may succeed, the rest must get 409, and stock must end at 0. It needs a throwaway PostgreSQL (it leaves test data behind and only accepts a localhost URL), for example with Docker:
+
+```bash
+docker run --rm -d --name cs308-pg -e POSTGRES_PASSWORD=postgres -p 55432:5432 postgres:17
+DIRECT_URL=postgres://postgres:postgres@localhost:55432/postgres npm run db:migrate
+CONCURRENCY_DATABASE_URL=postgres://postgres:postgres@localhost:55432/postgres npm run test:concurrency
+docker stop cs308-pg
+```
+
+Do not use `npx prisma dev` for this: it runs every connection through one PGlite session, so parallel requests get mixed up.
+
 ## Scripts
 
 | Script                   | What it does                                                          |
@@ -85,12 +116,13 @@ The schema is in [prisma/schema.prisma](prisma/schema.prisma) and is owned by Ah
 | `npm test`               | Runs all unit tests (no database needed)                              |
 | `npm run test:coverage`  | Tests plus a coverage report                                          |
 | `npm run test:db`        | Checks the database rules on an in-memory PostgreSQL (no setup)       |
+| `npm run test:concurrency` | Last-card race through the real order API (needs a local PostgreSQL) |
 | `npm run setup`          | Creates `.env` if it does not exist                                   |
 | `npm run db:local`       | Starts the local development database                                 |
 | `npm run db:migrate`     | Applies pending migrations (`prisma migrate deploy`)                  |
 | `npm run db:migrate:dev` | Creates and applies a new migration on the dev database               |
 | `npm run db:generate`    | Generates the Prisma client into `generated/prisma` (also on install) |
-| `npm run db:seed`        | Creates or resets the demo accounts                                   |
+| `npm run db:seed`        | Creates or resets the demo accounts, catalog and orders               |
 | `npm run db:studio`      | Opens Prisma Studio to browse the data                                |
 | `npm run format`         | Formats the code with Prettier (run before committing)                |
 

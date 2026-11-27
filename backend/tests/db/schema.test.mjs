@@ -327,3 +327,81 @@ test('the delivery list view obeys row level security', async () => {
   );
   assert.ok(rows[0].reloptions.includes('security_invoker=true'));
 });
+
+// Requirement 16: returns
+
+test('a return request starts open and records its refund amount', async () => {
+  await addDeliveredOrder();
+  await db.exec(
+    `INSERT INTO return_requests (order_item_id, user_id, quantity, reason, refund_amount) VALUES (1, 1, 1, 'Wrong condition', 129.00)`,
+  );
+  const { rows } = await db.query(`SELECT status, reviewed_at, refund_amount FROM return_requests`);
+  assert.deepEqual(rows.map((row) => ({ ...row, refund_amount: Number(row.refund_amount) })), [
+    { status: 'requested', reviewed_at: null, refund_amount: 129 },
+  ]);
+});
+
+test('a return request needs at least one card', async () => {
+  await addDeliveredOrder();
+  await assertRejected(
+    `INSERT INTO return_requests (order_item_id, user_id, quantity, refund_amount) VALUES (1, 1, 0, 0)`,
+    'return_requests_quantity_check',
+  );
+});
+
+test('a refund cannot be negative', async () => {
+  await addDeliveredOrder();
+  await assertRejected(
+    `INSERT INTO return_requests (order_item_id, user_id, quantity, refund_amount) VALUES (1, 1, 1, -5)`,
+    'return_requests_refund_amount_check',
+  );
+});
+
+test('an approved return records when the sales manager decided', async () => {
+  await addDeliveredOrder();
+  await db.exec(
+    `INSERT INTO return_requests (order_item_id, user_id, quantity, refund_amount) VALUES (1, 1, 1, 129.00)`,
+  );
+  await assertRejected(
+    `UPDATE return_requests SET status = 'approved' WHERE id = 1`,
+    'return_requests_review_check',
+  );
+  await db.exec(
+    `UPDATE return_requests SET status = 'approved', reviewed_by = 2, reviewed_at = now() WHERE id = 1`,
+  );
+});
+
+test('an open return request has no reviewer', async () => {
+  await addDeliveredOrder();
+  await assertRejected(
+    `INSERT INTO return_requests (order_item_id, user_id, quantity, refund_amount, reviewed_by) VALUES (1, 1, 1, 129.00, 2)`,
+    'return_requests_review_check',
+  );
+});
+
+test('a return status must be one of the known values', async () => {
+  await addDeliveredOrder();
+  await assert.rejects(
+    db.exec(
+      `INSERT INTO return_requests (order_item_id, user_id, quantity, refund_amount, status) VALUES (1, 1, 1, 129.00, 'refunded')`,
+    ),
+    /invalid input value for enum return_status/,
+  );
+});
+
+// Requirements 11 and 14: wish list
+
+test('a card is on a wish list at most once', async () => {
+  await db.exec(`INSERT INTO wish_list_items (user_id, product_id) VALUES (1, 1)`);
+  await assertRejected(
+    `INSERT INTO wish_list_items (user_id, product_id) VALUES (1, 1)`,
+    'wish_list_items_pkey',
+  );
+});
+
+test('deleting a user also clears their wish list', async () => {
+  await db.exec(`INSERT INTO wish_list_items (user_id, product_id) VALUES (1, 1)`);
+  await db.exec(`DELETE FROM users WHERE id = 1`);
+  const { rows } = await db.query(`SELECT count(*)::int AS n FROM wish_list_items`);
+  assert.equal(rows[0].n, 0);
+});
