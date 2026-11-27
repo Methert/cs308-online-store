@@ -195,3 +195,57 @@ dialog::backdrop { background: #332b3959; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
 }
+
+
+.detail-reviews {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.detail-reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-rating-summary,
+.detail-review-note {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.review-form {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.review-form label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.review-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.review-item {
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.review-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
