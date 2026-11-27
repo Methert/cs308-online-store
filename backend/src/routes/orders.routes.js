@@ -18,6 +18,12 @@ const { AppError }          = require('../utils/AppError');
 const { ROLES }             = require('../constants/roles');
 const { createInvoiceService } = require('../services/invoice.service');
 
+// Same test cards the frontend checkout page declines (req. 15).
+const DECLINED_CARDS = {
+  '4000000000000002': 'Your card was declined.',
+  '4000000000009995': 'Insufficient funds.',
+};
+
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 const ORDER_INCLUDE = {
@@ -34,7 +40,7 @@ function parseOrderId(raw) {
   return id;
 }
 
-function createOrderRouter({ prisma, authenticate, requireRole }) {
+function createOrderRouter({ prisma, authenticate, requireRole, config }) {
   const router = express.Router();
   router.use(authenticate); // every order endpoint requires login
 
@@ -51,7 +57,13 @@ function createOrderRouter({ prisma, authenticate, requireRole }) {
     const rawCard = String(paymentInfo.cardNumber ?? '').replace(/\s/g, '');
     if (rawCard.length < 4)      throw new AppError(400, 'paymentInfo.cardNumber is required');
     const cardLast4 = rawCard.slice(-4);
-    const cardHash  = crypto.createHash('sha256').update(rawCard).digest('hex');
+
+    // Mock bank: same test cards as the frontend checkout page (req. 15).
+    const declineMessage = DECLINED_CARDS[rawCard];
+    if (declineMessage) throw new AppError(402, declineMessage);
+
+    // HMAC with a secret key instead of a plain hash (req. 17).
+    const cardHash = crypto.createHmac('sha256', config.cardHmacSecret).update(rawCard).digest('hex');
 
     const cart = await prisma.cart.findUnique({
       where: { userId: req.user.id },
@@ -63,10 +75,6 @@ function createOrderRouter({ prisma, authenticate, requireRole }) {
     });
 
     if (!cart?.items.length) throw new AppError(400, 'Cart is empty');
-
-    // Mock bank: always approves (req. 15 — real verification is out of scope)
-    const bankApproved = true;
-    if (!bankApproved) throw new AppError(402, 'Payment declined');
 
     const totalPrice = cart.items.reduce(
       (sum, item) => sum + Number(item.product.price) * item.quantity,
@@ -110,7 +118,7 @@ function createOrderRouter({ prisma, authenticate, requireRole }) {
       });
 
       // Store the payment record. The full card number is never kept, only the last four
-      // digits and a one-way hash (req. 17).
+      // digits and an HMAC (req. 17).
       await tx.payment.create({
         data: {
           orderId:       newOrder.id,
@@ -199,10 +207,12 @@ function createOrderRouter({ prisma, authenticate, requireRole }) {
   });
 
   // POST /api/orders/:id/return  – within 30 days of delivery (req. 16)
-  // The sales manager reviews the request and approves the refund separately.
-  // NOTE: requires a return_requests table in the schema (migration pending — coordinate with Ahmet).
+  // Creates one return_requests row per order item (quantity × unit price = refund amount).
+  // The sales manager reviews each request and approves the refund separately.
   router.post('/:id/return', async (req, res) => {
-    const id    = parseOrderId(req.params.id);
+    const id     = parseOrderId(req.params.id);
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() || null : null;
+
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order || order.userId !== req.user.id) throw new AppError(404, 'Order not found');
     if (order.status !== 'delivered') {
@@ -212,8 +222,18 @@ function createOrderRouter({ prisma, authenticate, requireRole }) {
       throw new AppError(409, 'Return window of 30 days has passed');
     }
 
-    // TODO: insert into return_requests table once migration is added (coordinate with Ahmet)
-    // TODO: notify sales manager by email (req. 16)
+    const items = await prisma.orderItem.findMany({ where: { orderId: id } });
+
+    for (const item of items) {
+      const refundAmount = Number(item.unitPrice) * item.quantity;
+      await prisma.$executeRaw`
+        INSERT INTO return_requests
+          (order_item_id, user_id, quantity, reason, status, refund_amount, created_at)
+        VALUES
+          (${item.id}, ${req.user.id}, ${item.quantity}, ${reason},
+           'requested'::return_status, ${refundAmount}, NOW())
+      `;
+    }
 
     res.status(202).json({
       data: { message: 'Return request received. The sales manager will review it shortly.' },

@@ -64,7 +64,7 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
     createAuthRouter({ authService, authenticate, rateLimitPerWindow: config.authRateLimit }),
   );
   app.use('/api/cart', createCartRouter(deps));
-  app.use('/api/orders', createOrderRouter(deps));
+  app.use('/api/orders', createOrderRouter({ ...deps, config }));
   // Example (products):  app.use('/api/products', createProductRouter(deps));
 
   // --- Last: unknown URLs and the error handler ------------------------------

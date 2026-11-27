@@ -2,17 +2,22 @@
 //
 // All Prisma calls are replaced with Jest mock functions so the tests run without a database.
 // The invoice service is mocked so PDFKit and nodemailer are never imported during tests.
+const crypto  = require('crypto');
 const request = require('supertest');
 const { createApp }                    = require('../src/app');
 const { buildTestConfig, silentLogger } = require('./helpers/testApp');
 const { createInMemoryUserRepository } = require('./helpers/inMemoryUserRepository');
 const { createTokenService }           = require('../src/utils/tokenService');
 
-// Prevent the invoice service from touching PDFKit, nodemailer or the filesystem.
+// Expose the generateAndSend mock so tests can assert it was called.
+// Variables inside jest.mock factories must have names prefixed with "mock".
+var mockGenerateAndSend;
+
 jest.mock('../src/services/invoice.service', () => ({
-  createInvoiceService: () => ({
-    generateAndSend: jest.fn().mockResolvedValue({ id: 1, invoiceNumber: 'INV-TEST-000001' }),
-  }),
+  createInvoiceService: () => {
+    mockGenerateAndSend = jest.fn().mockResolvedValue({ id: 1, invoiceNumber: 'INV-TEST-000001' });
+    return { generateAndSend: mockGenerateAndSend };
+  },
 }));
 
 // ---------- helpers ----------------------------------------------------------
@@ -61,7 +66,7 @@ function createTestAppWithPrisma(fakePrisma) {
     logger: silentLogger,
   });
   const tokenService = createTokenService(config.jwt);
-  return { app, tokenService };
+  return { app, tokenService, config };
 }
 
 // A cart with one item that has enough stock to be ordered.
@@ -191,12 +196,12 @@ describe('POST /api/orders', () => {
     expect(res.body.data.status).toBe('processing');
   });
 
-  test('stores a payment record with last-4 digits and a hash', async () => {
+  test('stores a payment record with last-4 digits and an HMAC', async () => {
     const fake = buildFakePrisma();
     fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
     fake.$executeRaw.mockResolvedValue(1);
     fake.order.create.mockResolvedValue(PLACED_ORDER);
-    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const { app, tokenService, config } = createTestAppWithPrisma(fake);
     const token = tokenService.sign({ id: 1, role: 'customer' });
 
     await request(app)
@@ -216,6 +221,117 @@ describe('POST /api/orders', () => {
     // The full card number must NOT be stored
     const callArg = fake.payment.create.mock.calls[0][0].data;
     expect(callArg).not.toHaveProperty('cardNumber');
+
+    // The hash must be HMAC-SHA256, not plain SHA-256
+    const plainHash = crypto.createHash('sha256').update('4111111111111111').digest('hex');
+    expect(callArg.cardHash).not.toBe(plainHash);
+    const expectedHmac = crypto.createHmac('sha256', config.cardHmacSecret)
+      .update('4111111111111111').digest('hex');
+    expect(callArg.cardHash).toBe(expectedHmac);
+  });
+});
+
+// ---------- POST /api/orders (mock bank) ------------------------------------
+
+describe('POST /api/orders mock bank', () => {
+  test('returns 402 when the card is on the decline list (generic decline)', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        ...ORDER_BODY,
+        paymentInfo: { ...ORDER_BODY.paymentInfo, cardNumber: '4000 0000 0000 0002' },
+      });
+
+    expect(res.status).toBe(402);
+    expect(res.body.error).toMatch(/declined/i);
+  });
+
+  test('returns 402 with insufficient funds message for the funds test card', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        ...ORDER_BODY,
+        paymentInfo: { ...ORDER_BODY.paymentInfo, cardNumber: '4000 0000 0000 9995' },
+      });
+
+    expect(res.status).toBe(402);
+    expect(res.body.error).toMatch(/funds/i);
+  });
+
+  test('approves the standard test card (4242 4242 4242 4242)', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    fake.$executeRaw.mockResolvedValue(1);
+    fake.order.create.mockResolvedValue(PLACED_ORDER);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        ...ORDER_BODY,
+        paymentInfo: { ...ORDER_BODY.paymentInfo, cardNumber: '4242 4242 4242 4242' },
+      });
+
+    expect(res.status).toBe(201);
+  });
+});
+
+// ---------- POST /api/orders (invoice) ---------------------------------------
+
+describe('POST /api/orders invoice', () => {
+  test('calls the invoice service with the placed order', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    fake.$executeRaw.mockResolvedValue(1);
+    fake.order.create.mockResolvedValue(PLACED_ORDER);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send(ORDER_BODY);
+
+    // Let the fire-and-forget promise settle before asserting.
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(mockGenerateAndSend).toHaveBeenCalledTimes(1);
+    expect(mockGenerateAndSend).toHaveBeenCalledWith(
+      expect.objectContaining({ id: PLACED_ORDER.id }),
+    );
+  });
+
+  test('a failure in the invoice service does not affect the 201 response', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    fake.$executeRaw.mockResolvedValue(1);
+    fake.order.create.mockResolvedValue(PLACED_ORDER);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    // Make the invoice service throw to verify it does not break the order response.
+    mockGenerateAndSend.mockRejectedValueOnce(new Error('PDF disk full'));
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send(ORDER_BODY);
+
+    expect(res.status).toBe(201);
   });
 });
 
@@ -451,5 +567,31 @@ describe('POST /api/orders/:id/return', () => {
 
     expect(res.status).toBe(202);
     expect(res.body.data.message).toMatch(/return request received/i);
+  });
+
+  test('stores a return_requests row for each order item', async () => {
+    const fake = buildFakePrisma();
+    const recentDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+    fake.order.findUnique.mockResolvedValue({
+      id: 7, userId: 1, status: 'delivered', createdAt: recentDate,
+    });
+    fake.orderItem.findMany.mockResolvedValue([
+      { id: 11, productId: 1, quantity: 2, unitPrice: '100.00' },
+      { id: 12, productId: 2, quantity: 1, unitPrice: '50.00' },
+    ]);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    const res = await request(app)
+      .post('/api/orders/7/return')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ reason: 'Wrong card' });
+
+    expect(res.status).toBe(202);
+    // One INSERT per order item (2 items → 2 calls)
+    expect(fake.$executeRaw).toHaveBeenCalledTimes(2);
+    // The SQL must be an INSERT into return_requests
+    const [strings] = fake.$executeRaw.mock.calls[0];
+    expect(strings[0].toLowerCase()).toContain('insert into return_requests');
   });
 });

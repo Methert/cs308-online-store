@@ -3,6 +3,7 @@ const { loadConfig } = require('../src/config/env');
 const validEnv = {
   DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/pokemon_shop',
   JWT_SECRET: 'a'.repeat(32),
+  CARD_HMAC_SECRET: 'b'.repeat(32),
 };
 
 describe('loadConfig', () => {
@@ -39,6 +40,17 @@ describe('loadConfig', () => {
 
   test('rejects an invalid token lifetime', () => {
     expect(() => loadConfig({ ...validEnv, JWT_EXPIRES_IN: 'one day' })).toThrow('JWT_EXPIRES_IN');
+  });
+
+  test('fails fast when CARD_HMAC_SECRET is missing', () => {
+    const { CARD_HMAC_SECRET: _, ...withoutSecret } = validEnv;
+    expect(() => loadConfig(withoutSecret)).toThrow('CARD_HMAC_SECRET is required');
+  });
+
+  test('rejects a CARD_HMAC_SECRET shorter than 32 characters', () => {
+    expect(() => loadConfig({ ...validEnv, CARD_HMAC_SECRET: 'b'.repeat(31) })).toThrow(
+      'at least 32 characters',
+    );
   });
 
   test('keeps SSL off for the database unless DATABASE_SSL is "true"', () => {
