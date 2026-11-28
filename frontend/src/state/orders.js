@@ -1,5 +1,5 @@
 // Orders saved by the checkout page.
-// When a JWT token is available, fetchUserOrders loads live data from GET /api/orders.
+// TODO: load the signed-in customer's orders from GET /api/orders instead.
 
 export const ORDERS_KEY = 'peko-cards-orders-v1';
 
@@ -96,20 +96,4 @@ export function stepIndex(status) {
 
 export function formatDate(isoDate) {
   return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(isoDate));
-}
-
-// Fetches the signed-in customer's orders from the backend.
-// Returns the orders array or null on failure.
-export async function fetchUserOrders(token) {
-  if (!token) return null;
-  try {
-    const res = await fetch('/api/orders', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return null;
-    const { data } = await res.json();
-    return data?.orders ?? null;
-  } catch {
-    return null;
-  }
 }

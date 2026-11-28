@@ -1,0 +1,33 @@
+name: Keep Supabase awake
+
+# Supabase pauses free projects after 7 days without activity. This job runs one tiny query
+# twice a week so the dev database stays up for the demos.
+# Setup (once, by the repository owner): Settings -> Secrets and variables -> Actions ->
+# New repository secret, name SUPABASE_DB_URL, value = the DIRECT_URL from backend/.env
+# (not DATABASE_URL: psql rejects its "?pgbouncer=true").
+# Scheduled jobs only run from the default branch (dev). Run it by hand from the Actions tab.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1,4' # Monday and Thursday, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query the database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::The SUPABASE_DB_URL secret is not set (see the comment at the top of this file)."
+            exit 1
+          fi
+          sudo apt-get install -y -qq postgresql-client > /dev/null
+          result=$(psql "$SUPABASE_DB_URL" -tAc 'SELECT count(*) FROM products')
+          echo "Database is up: $result products."

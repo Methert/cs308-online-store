@@ -55,3 +55,145 @@ Content-Type: application/json
 
 ### Profile without a token: returns 401
 GET {{base}}/auth/me
+
+### ---------------------------------------------------------------------------
+### Products and categories (after npm run db:seed)
+### ---------------------------------------------------------------------------
+
+### All card sets with their number of products
+GET {{base}}/categories
+
+### First page of products (sorted by name, 20 per page)
+GET {{base}}/products
+
+### Search in name or description, cheapest first
+GET {{base}}/products?q=charizard&sort=price_asc
+
+### Best sellers first, second page of 10
+GET {{base}}/products?sort=popularity&limit=10&page=2
+
+### Products of one card set
+GET {{base}}/categories/1/products?sort=price_desc
+
+### Product detail
+GET {{base}}/products/1
+
+### Invalid sort: returns 400 with the allowed values
+GET {{base}}/products?sort=cheapest
+
+### Log in as product manager for the requests below
+# @name pmLogin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "pm@pokeshop.test",
+  "password": "Manager123"
+}
+
+### Manager list, including removed products and the cost
+GET {{base}}/products/manage?status=all
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+
+### Add a product
+# @name newProduct
+POST {{base}}/products
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "name": "Mew ex",
+  "model": "193/165",
+  "serialNumber": "DEMO-193-NM",
+  "rarity": "Ultra Rare",
+  "description": "A full-art Mew ex.",
+  "price": 19.9,
+  "cost": 8,
+  "stockQuantity": 5,
+  "warrantyStatus": "Authenticity guaranteed; condition as described",
+  "distributor": "The Pokémon Company International"
+}
+
+### Change its price
+PATCH {{base}}/products/{{newProduct.response.body.data.product.id}}
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "price": 24.9
+}
+
+### Add 3 copies to the stock
+PATCH {{base}}/products/{{newProduct.response.body.data.product.id}}/stock
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "change": 3
+}
+
+### Set the stock to an exact number
+PATCH {{base}}/products/{{newProduct.response.body.data.product.id}}/stock
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "stockQuantity": 10
+}
+
+### Take it off sale (it stays in the database for old orders)
+DELETE {{base}}/products/{{newProduct.response.body.data.product.id}}
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+
+### Add a card set
+POST {{base}}/categories
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Paldean Fates",
+  "setCode": "sv04.5",
+  "series": "Scarlet & Violet",
+  "releaseDate": "2024-01-26"
+}
+
+### ---------------------------------------------------------------------------
+### Deliveries and order status (product manager, uses pmLogin above)
+### Place an order as a customer first, so the list is not empty.
+### ---------------------------------------------------------------------------
+
+### Delivery list, oldest orders first
+GET {{base}}/deliveries
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+
+### Only orders that still have to be shipped
+GET {{base}}/deliveries?status=processing
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+
+### Ship order 1
+PATCH {{base}}/orders/1/status
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "in_transit"
+}
+
+### Mark order 1 as delivered
+PATCH {{base}}/orders/1/status
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "delivered"
+}
+
+### Skipping a step or going back: returns 409
+PATCH {{base}}/orders/1/status
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "in_transit"
+}

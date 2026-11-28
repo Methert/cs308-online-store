@@ -8,6 +8,7 @@ require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const { createPrismaClient } = require('../src/db/prisma');
 const { seedCatalog } = require('./seed-catalog');
+const { seedDemoOrders } = require('./seed-orders');
 
 const DEMO_USERS = [
   {
@@ -59,6 +60,12 @@ async function main() {
     const catalog = await seedCatalog(prisma);
     console.log(
       `  ✓ catalog          ${catalog.categories} card sets, ${catalog.products} products`,
+    );
+
+    const customer = await prisma.user.findUnique({ where: { email: DEMO_USERS[0].email } });
+    const orders = await seedDemoOrders(prisma, { customer });
+    console.log(
+      `  ✓ demo orders      ${orders.created} added, ${orders.total - orders.created} already there`,
     );
   } finally {
     await prisma.$disconnect();

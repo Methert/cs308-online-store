@@ -15,6 +15,18 @@ const { createAuthRouter } = require('./routes/auth.routes');
 const { createHealthRouter } = require('./routes/health.routes');
 const { createCartRouter } = require('./routes/cart.routes');
 const { createOrderRouter } = require('./routes/orders.routes');
+const { createProductRouter } = require('./routes/products.routes');
+const { createCategoryRouter } = require('./routes/categories.routes');
+const { createProductService } = require('./services/product.service');
+const { createCategoryService } = require('./services/category.service');
+const { createProductRepository } = require('./repositories/product.repository');
+const { createCategoryRepository } = require('./repositories/category.repository');
+const { createReviewRouter } = require('./routes/reviews.routes');
+const { createReviewService } = require('./services/review.service');
+const { createReviewRepository } = require('./repositories/review.repository');
+const { createDeliveryRepository } = require('./repositories/delivery.repository');
+const { createDeliveryService } = require('./services/delivery.service');
+const { createDeliveryRouter, createOrderStatusRouter } = require('./routes/deliveries.routes');
 const { ROLES } = require('./constants/roles');
 
 /**
@@ -23,15 +35,35 @@ const { ROLES } = require('./constants/roles');
  * @param {object} options.userRepository  createUserRepository(prisma), or a fake one in tests
  * @param {Function} options.checkDatabase function that runs "SELECT 1" on the database
  * @param {object} [options.prisma]        client for the other modules (cart, orders, ...)
+ * @param {object} [options.productRepository]   default: built from prisma; tests pass a fake
+ * @param {object} [options.categoryRepository]  default: built from prisma; tests pass a fake
+ * @param {object} [options.deliveryRepository]  default: built from prisma; tests pass a fake
  * @param {object} [options.logger]
  */
-function createApp({ config, userRepository, checkDatabase, prisma = null, logger = console }) {
+function createApp({
+  config,
+  userRepository,
+  checkDatabase,
+  prisma = null,
+  productRepository = prisma ? createProductRepository(prisma) : null,
+  categoryRepository = prisma ? createCategoryRepository(prisma) : null,
+  reviewRepository = prisma ? createReviewRepository(prisma) : null,
+  deliveryRepository = prisma ? createDeliveryRepository(prisma) : null,
+  logger = console,
+}) {
   const app = express();
 
   // --- General settings ------------------------------------------------------
   app.use(helmet()); // security headers (also hides X-Powered-By)
   app.use(cors({ origin: config.clientOrigins })); // only our frontend may call the API
   app.use(express.json({ limit: '100kb' })); // turns the JSON body into req.body
+  // Without a JSON body (or with another Content-Type) Express leaves req.body undefined, and
+  // code like "const { quantity } = req.body" would crash with a 500. With an empty object the
+  // validation answers with a normal 400 instead.
+  app.use((req, res, next) => {
+    if (req.body === undefined) req.body = {};
+    next();
+  });
 
   // --- Shared parts ----------------------------------------------------------
   const tokenService = createTokenService(config.jwt);
@@ -41,6 +73,10 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
     tokenService,
     saltRounds: config.bcryptRounds,
   });
+  const productService = createProductService({ productRepository, categoryRepository });
+  const reviewService = createReviewService({ reviewRepository });
+  const categoryService = createCategoryService({ categoryRepository });
+  const deliveryService = createDeliveryService({ deliveryRepository });
 
   // Shared dependencies handed to the routers of the other team members.
   // See "Adding a module" in the README.
@@ -64,8 +100,13 @@ function createApp({ config, userRepository, checkDatabase, prisma = null, logge
     createAuthRouter({ authService, authenticate, rateLimitPerWindow: config.authRateLimit }),
   );
   app.use('/api/cart', createCartRouter(deps));
+  // The product manager's status route must come before Kerem's order router (see the file).
+  app.use('/api/orders', createOrderStatusRouter({ ...deps, deliveryService }));
   app.use('/api/orders', createOrderRouter({ ...deps, config }));
-  // Example (products):  app.use('/api/products', createProductRouter(deps));
+  app.use('/api/deliveries', createDeliveryRouter({ ...deps, deliveryService }));
+  app.use('/api/products', createProductRouter({ ...deps, productService }));
+  app.use('/api/categories', createCategoryRouter({ ...deps, productService, categoryService }));
+  app.use('/api/reviews', createReviewRouter({ ...deps, reviewService }));
 
   // --- Last: unknown URLs and the error handler ------------------------------
   app.use(notFound);

@@ -129,7 +129,7 @@ describe('POST /api/orders', () => {
       .send({ paymentInfo: ORDER_BODY.paymentInfo });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/deliveryAddress/);
+    expect(res.body.details.map((d) => d.field)).toContain('deliveryAddress');
   });
 
   test('returns 400 when paymentInfo is missing', async () => {
@@ -142,7 +142,7 @@ describe('POST /api/orders', () => {
       .send({ deliveryAddress: 'Pallet Town' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/paymentInfo/);
+    expect(res.body.details.map((d) => d.field)).toContain('paymentInfo');
   });
 
   test('returns 400 when the cart is empty', async () => {
@@ -374,7 +374,7 @@ describe('GET /api/orders/:id', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Invalid order ID');
+    expect(res.body.error).toBe('Order id must be a positive whole number');
   });
 
   test('returns 404 when the order does not exist', async () => {
@@ -431,7 +431,7 @@ describe('PUT /api/orders/:id/cancel', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Invalid order ID');
+    expect(res.body.error).toBe('Order id must be a positive whole number');
   });
 
   test('returns 404 when the order does not exist', async () => {
@@ -501,7 +501,7 @@ describe('POST /api/orders/:id/return', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Invalid order ID');
+    expect(res.body.error).toBe('Order id must be a positive whole number');
   });
 
   test('returns 404 when the order does not exist', async () => {
