@@ -19,6 +19,9 @@ const envSchema = z.object({
     .string()
     .regex(DURATION_PATTERN, 'JWT_EXPIRES_IN must look like 15m, 12h or 1d')
     .default('1d'),
+  CARD_HMAC_SECRET: z
+    .string({ error: 'CARD_HMAC_SECRET is required' })
+    .min(32, 'CARD_HMAC_SECRET must be at least 32 characters long'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
   CLIENT_ORIGIN: z.string().default('http://localhost:5173'),
   AUTH_RATE_LIMIT: z.coerce.number().int().min(1).default(20),
@@ -40,6 +43,7 @@ function loadConfig(env = process.env) {
     databaseUrl: e.DATABASE_URL,
     databaseSsl: e.DATABASE_SSL === 'true',
     jwt: { secret: e.JWT_SECRET, expiresIn: e.JWT_EXPIRES_IN },
+    cardHmacSecret: e.CARD_HMAC_SECRET,
     bcryptRounds: e.BCRYPT_ROUNDS,
     // Several origins can be given, separated by commas: "http://localhost:5173,https://site.com"
     clientOrigins: e.CLIENT_ORIGIN.split(',')

@@ -102,7 +102,7 @@ function createApp({
   app.use('/api/cart', createCartRouter(deps));
   // The product manager's status route must come before Kerem's order router (see the file).
   app.use('/api/orders', createOrderStatusRouter({ ...deps, deliveryService }));
-  app.use('/api/orders', createOrderRouter(deps));
+  app.use('/api/orders', createOrderRouter({ ...deps, config }));
   app.use('/api/deliveries', createDeliveryRouter({ ...deps, deliveryService }));
   app.use('/api/products', createProductRouter({ ...deps, productService }));
   app.use('/api/categories', createCategoryRouter({ ...deps, productService, categoryService }));

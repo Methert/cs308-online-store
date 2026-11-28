@@ -15,6 +15,7 @@ function buildTestConfig(overrides = {}) {
     port: 0,
     databaseUrl: 'postgresql://unused',
     jwt: { secret: TEST_SECRET, expiresIn: '1h' },
+    cardHmacSecret: 'test-card-hmac-secret-that-is-at-least-32-chars',
     bcryptRounds: 4, // low to keep tests fast; use 10+ in real environments
     clientOrigins: ['http://localhost:5173'],
     authRateLimit: 1000,

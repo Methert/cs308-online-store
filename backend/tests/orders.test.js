@@ -2,17 +2,22 @@
 //
 // All Prisma calls are replaced with Jest mock functions so the tests run without a database.
 // The invoice service is mocked so PDFKit and nodemailer are never imported during tests.
+const crypto  = require('crypto');
 const request = require('supertest');
 const { createApp }                    = require('../src/app');
 const { buildTestConfig, silentLogger } = require('./helpers/testApp');
 const { createInMemoryUserRepository } = require('./helpers/inMemoryUserRepository');
 const { createTokenService }           = require('../src/utils/tokenService');
 
-// Prevent the invoice service from touching PDFKit, nodemailer or the filesystem.
+// Expose the generateAndSend mock so tests can assert it was called.
+// Variables inside jest.mock factories must have names prefixed with "mock".
+var mockGenerateAndSend;
+
 jest.mock('../src/services/invoice.service', () => ({
-  createInvoiceService: () => ({
-    generateAndSend: jest.fn().mockResolvedValue({ id: 1, invoiceNumber: 'INV-TEST-000001' }),
-  }),
+  createInvoiceService: () => {
+    mockGenerateAndSend = jest.fn().mockResolvedValue({ id: 1, invoiceNumber: 'INV-TEST-000001' });
+    return { generateAndSend: mockGenerateAndSend };
+  },
 }));
 
 // ---------- helpers ----------------------------------------------------------
@@ -43,7 +48,11 @@ function buildFakePrisma() {
     user: {
       findUnique: jest.fn().mockResolvedValue(null),
     },
+    returnRequest: {
+      create: jest.fn(async ({ data }) => ({ id: 100, status: 'requested', ...data })),
+    },
     $executeRaw:  jest.fn().mockResolvedValue(1),
+    $queryRaw:    jest.fn().mockResolvedValue([]),
     $transaction: jest.fn(),
   };
   fake.$transaction.mockImplementation(async (cb) => cb(fake));
@@ -61,7 +70,7 @@ function createTestAppWithPrisma(fakePrisma) {
     logger: silentLogger,
   });
   const tokenService = createTokenService(config.jwt);
-  return { app, tokenService };
+  return { app, tokenService, config };
 }
 
 // A cart with one item that has enough stock to be ordered.
@@ -191,12 +200,12 @@ describe('POST /api/orders', () => {
     expect(res.body.data.status).toBe('processing');
   });
 
-  test('stores a payment record with last-4 digits and a hash', async () => {
+  test('stores a payment record with last-4 digits and an HMAC', async () => {
     const fake = buildFakePrisma();
     fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
     fake.$executeRaw.mockResolvedValue(1);
     fake.order.create.mockResolvedValue(PLACED_ORDER);
-    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const { app, tokenService, config } = createTestAppWithPrisma(fake);
     const token = tokenService.sign({ id: 1, role: 'customer' });
 
     await request(app)
@@ -216,6 +225,117 @@ describe('POST /api/orders', () => {
     // The full card number must NOT be stored
     const callArg = fake.payment.create.mock.calls[0][0].data;
     expect(callArg).not.toHaveProperty('cardNumber');
+
+    // The hash must be HMAC-SHA256, not plain SHA-256
+    const plainHash = crypto.createHash('sha256').update('4111111111111111').digest('hex');
+    expect(callArg.cardHash).not.toBe(plainHash);
+    const expectedHmac = crypto.createHmac('sha256', config.cardHmacSecret)
+      .update('4111111111111111').digest('hex');
+    expect(callArg.cardHash).toBe(expectedHmac);
+  });
+});
+
+// ---------- POST /api/orders (mock bank) ------------------------------------
+
+describe('POST /api/orders mock bank', () => {
+  test('returns 402 when the card is on the decline list (generic decline)', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        ...ORDER_BODY,
+        paymentInfo: { ...ORDER_BODY.paymentInfo, cardNumber: '4000 0000 0000 0002' },
+      });
+
+    expect(res.status).toBe(402);
+    expect(res.body.error).toMatch(/declined/i);
+  });
+
+  test('returns 402 with insufficient funds message for the funds test card', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        ...ORDER_BODY,
+        paymentInfo: { ...ORDER_BODY.paymentInfo, cardNumber: '4000 0000 0000 9995' },
+      });
+
+    expect(res.status).toBe(402);
+    expect(res.body.error).toMatch(/funds/i);
+  });
+
+  test('approves the standard test card (4242 4242 4242 4242)', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    fake.$executeRaw.mockResolvedValue(1);
+    fake.order.create.mockResolvedValue(PLACED_ORDER);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        ...ORDER_BODY,
+        paymentInfo: { ...ORDER_BODY.paymentInfo, cardNumber: '4242 4242 4242 4242' },
+      });
+
+    expect(res.status).toBe(201);
+  });
+});
+
+// ---------- POST /api/orders (invoice) ---------------------------------------
+
+describe('POST /api/orders invoice', () => {
+  test('calls the invoice service with the placed order', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    fake.$executeRaw.mockResolvedValue(1);
+    fake.order.create.mockResolvedValue(PLACED_ORDER);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send(ORDER_BODY);
+
+    // Let the fire-and-forget promise settle before asserting.
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(mockGenerateAndSend).toHaveBeenCalledTimes(1);
+    expect(mockGenerateAndSend).toHaveBeenCalledWith(
+      expect.objectContaining({ id: PLACED_ORDER.id }),
+    );
+  });
+
+  test('a failure in the invoice service does not affect the 201 response', async () => {
+    const fake = buildFakePrisma();
+    fake.cart.findUnique.mockResolvedValue(CART_WITH_ITEMS);
+    fake.$executeRaw.mockResolvedValue(1);
+    fake.order.create.mockResolvedValue(PLACED_ORDER);
+    const { app, tokenService } = createTestAppWithPrisma(fake);
+    const token = tokenService.sign({ id: 1, role: 'customer' });
+
+    // Make the invoice service throw to verify it does not break the order response.
+    mockGenerateAndSend.mockRejectedValueOnce(new Error('PDF disk full'));
+
+    const res = await request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send(ORDER_BODY);
+
+    expect(res.status).toBe(201);
   });
 });
 
@@ -435,21 +555,98 @@ describe('POST /api/orders/:id/return', () => {
     expect(res.body.error).toMatch(/30 days/);
   });
 
-  test('accepts a return request for a delivered order within 30 days', async () => {
+  // A delivered order from 5 days ago with two lines: 2 × $100 and 1 × $50.
+  function deliveredOrder({ alreadyRequested = 0 } = {}) {
     const fake = buildFakePrisma();
-    const recentDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     fake.order.findUnique.mockResolvedValue({
-      id: 7, userId: 1, status: 'delivered', createdAt: recentDate,
+      id: 7, userId: 1, status: 'delivered',
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     });
+    fake.orderItem.findMany.mockResolvedValue([
+      {
+        id: 11, productId: 1, quantity: 2, unitPrice: '100.00',
+        returnRequests: alreadyRequested ? [{ quantity: alreadyRequested, status: 'requested' }] : [],
+      },
+      { id: 12, productId: 2, quantity: 1, unitPrice: '50.00', returnRequests: [] },
+    ]);
     const { app, tokenService } = createTestAppWithPrisma(fake);
-    const token = tokenService.sign({ id: 1, role: 'customer' });
+    const send = (body) =>
+      request(app)
+        .post('/api/orders/7/return')
+        .set('Authorization', `Bearer ${tokenService.sign({ id: 1, role: 'customer' })}`)
+        .send(body);
+    return { fake, send };
+  }
 
-    const res = await request(app)
-      .post('/api/orders/7/return')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ reason: 'Card is damaged' });
+  test('without items, every card on the order is requested at the price paid', async () => {
+    const { fake, send } = deliveredOrder();
+    const res = await send({ reason: 'Card is damaged' });
 
     expect(res.status).toBe(202);
     expect(res.body.data.message).toMatch(/return request received/i);
+    expect(fake.returnRequest.create.mock.calls.map(([{ data }]) => data)).toEqual([
+      { orderItemId: 11, userId: 1, quantity: 2, reason: 'Card is damaged', refundAmount: 200 },
+      { orderItemId: 12, userId: 1, quantity: 1, reason: 'Card is damaged', refundAmount: 50 },
+    ]);
+  });
+
+  test('a selective return asks only for the chosen cards (req. 16)', async () => {
+    const { fake, send } = deliveredOrder();
+    const res = await send({ items: [{ orderItemId: 11, quantity: 1 }] });
+
+    expect(res.status).toBe(202);
+    expect(fake.returnRequest.create).toHaveBeenCalledTimes(1);
+    expect(fake.returnRequest.create.mock.calls[0][0].data).toMatchObject({
+      orderItemId: 11, quantity: 1, refundAmount: 100, reason: null,
+    });
+  });
+
+  test('locks the order lines while checking what is left to return', async () => {
+    const { fake, send } = deliveredOrder();
+    await send({});
+    const [strings] = fake.$queryRaw.mock.calls[0];
+    expect(strings.join('?')).toMatch(/FOR UPDATE/);
+  });
+
+  test('cannot ask to return more cards than are left on a line', async () => {
+    const { fake, send } = deliveredOrder({ alreadyRequested: 1 });
+    const res = await send({ items: [{ orderItemId: 11, quantity: 2 }] });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('Only 1 of order item 11 can still be returned');
+    expect(fake.returnRequest.create).not.toHaveBeenCalled();
+  });
+
+  test('a second full return request is refused once everything is being returned', async () => {
+    const { fake, send } = deliveredOrder();
+    fake.orderItem.findMany.mockResolvedValue([
+      { id: 11, quantity: 2, unitPrice: '100.00', returnRequests: [{ quantity: 2 }] },
+    ]);
+    const res = await send({});
+
+    expect(res.status).toBe(409);
+    expect(fake.returnRequest.create).not.toHaveBeenCalled();
+  });
+
+  test('an order item from another order gives 400', async () => {
+    const { send } = deliveredOrder();
+    const res = await send({ items: [{ orderItemId: 99, quantity: 1 }] });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Order item 99 is not on this order');
+  });
+
+  test('the same line listed twice gives 400', async () => {
+    const { send } = deliveredOrder();
+    const res = await send({
+      items: [{ orderItemId: 12, quantity: 1 }, { orderItemId: 12, quantity: 1 }],
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test('a quantity of 0 fails validation', async () => {
+    const { send } = deliveredOrder();
+    const res = await send({ items: [{ orderItemId: 11, quantity: 0 }] });
+    expect(res.status).toBe(400);
+    expect(res.body.details[0].field).toBe('items.0.quantity');
   });
 });

@@ -24,7 +24,7 @@ npm run db:local   # starts a PostgreSQL inside this project; first start takes 
 **Terminal 2: API**
 
 ```bash
-npm run setup      # creates .env with a random JWT_SECRET and the local database address
+npm run setup      # creates .env with random secrets and the local database address (run again after pulling: adds CARD_HMAC_SECRET if missing)
 npm run db:migrate # creates the tables
 npm run db:seed    # adds one demo account per role
 npm run dev        # starts the API with auto-restart
