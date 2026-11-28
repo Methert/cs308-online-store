@@ -76,11 +76,14 @@ model User {
 
   cart             Cart?
   orders           Order[]
-  reviews          Review[]        @relation("ReviewAuthor")
-  moderatedReviews Review[]        @relation("ReviewModerator")
-  returnRequests   ReturnRequest[] @relation("ReturnCustomer")
-  reviewedReturns  ReturnRequest[] @relation("ReturnReviewer")
+  reviews          Review[]              @relation("ReviewAuthor")
+  moderatedReviews Review[]              @relation("ReviewModerator")
+  returnRequests   ReturnRequest[]       @relation("ReturnCustomer")
+  reviewedReturns  ReturnRequest[]       @relation("ReturnReviewer")
   wishList         WishListItem[]
+  supportChats     SupportConversation[] @relation("ChatCustomer")
+  claimedChats     SupportConversation[] @relation("ChatAgent")
+  chatMessages     SupportMessage[]
 
   @@map("users")
 }
@@ -102,31 +105,35 @@ model Category {
 }
 
 model Product {
-  id             Int           @id @default(autoincrement())
-  categoryId     Int           @map("category_id")
-  name           String
+  id              Int           @id @default(autoincrement())
+  categoryId      Int           @map("category_id")
+  name            String
   // A product is one second-hand card in one condition. The same card in another condition is
   // another product with its own price and stock. The card's set is its category.
   // model: the card's number in its set, for example "199/165".
-  model          String
+  model           String
   // serialNumber: the shop's own stock code for this product.
-  serialNumber   String        @unique @map("serial_number")
+  serialNumber    String        @unique @map("serial_number")
   // As printed on the card, for example "Special Illustration Rare".
-  rarity         String
-  condition      CardCondition @default(near_mint)
-  description    String
-  stockQuantity  Int           @default(0) @map("stock_quantity")
-  price          Decimal       @db.Decimal(10, 2)
+  rarity          String
+  condition       CardCondition @default(near_mint)
+  description     String
+  stockQuantity   Int           @default(0) @map("stock_quantity")
+  price           Decimal       @db.Decimal(10, 2)
+  // The sales manager's discount in whole percent, 0 to 90 (requirement 11). The customer pays
+  // round(price × (100 - discountPercent) / 100, 2); orders store that as order_items.unit_price,
+  // so refunds use the discounted price (requirement 16). 0 means no discount.
+  discountPercent Int           @default(0) @map("discount_percent")
   // Empty cost means half of the price in profit calculations (requirement 11).
-  cost           Decimal?      @db.Decimal(10, 2)
+  cost            Decimal?      @db.Decimal(10, 2)
   // For a second-hand card: the authenticity and condition guarantee.
-  warrantyStatus String        @map("warranty_status")
-  distributor    String
-  imageUrl       String?       @map("image_url")
+  warrantyStatus  String        @map("warranty_status")
+  distributor     String
+  imageUrl        String?       @map("image_url")
   // Removed products stay in the table so old orders keep their history.
-  isActive       Boolean       @default(true) @map("is_active")
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  isActive        Boolean       @default(true) @map("is_active")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
   category   Category       @relation(fields: [categoryId], references: [id])
   cartItems  CartItem[]
@@ -303,4 +310,85 @@ model WishListItem {
   @@id([userId, productId])
   @@index([productId])
   @@map("wish_list_items")
+}
+
+// Support chat (requirement 13). A guest or a signed-in customer opens a conversation; it waits
+// in the queue until a support agent claims it, and is closed when finished. One open
+// conversation per customer or guest is enforced by the API.
+enum ChatStatus {
+  waiting
+  active
+  closed
+
+  @@map("chat_status")
+}
+
+enum ChatSender {
+  customer
+  agent
+
+  @@map("chat_sender")
+}
+
+model SupportConversation {
+  id         Int        @id @default(autoincrement())
+  // Signed-in customer, so the agent can see their orders and profile. Empty for a guest.
+  // Deleting the customer deletes their chats.
+  customerId Int?       @map("customer_id")
+  // A guest is recognised by the random token the browser keeps, like the guest cart.
+  guestToken String?    @map("guest_token")
+  guestName  String?    @map("guest_name")
+  status     ChatStatus @default(waiting)
+  // The agent who claimed it from the queue, and when.
+  agentId    Int?       @map("agent_id")
+  claimedAt  DateTime?  @map("claimed_at") @db.Timestamptz
+  closedAt   DateTime?  @map("closed_at") @db.Timestamptz
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  customer User?            @relation("ChatCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  agent    User?            @relation("ChatAgent", fields: [agentId], references: [id], onDelete: SetNull)
+  messages SupportMessage[]
+
+  // The queue: waiting conversations, oldest first.
+  @@index([status, createdAt])
+  @@index([agentId])
+  @@index([customerId])
+  @@index([guestToken])
+  @@map("support_conversations")
+}
+
+model SupportMessage {
+  id             Int        @id @default(autoincrement())
+  conversationId Int        @map("conversation_id")
+  senderType     ChatSender @map("sender_type")
+  // The agent or signed-in customer who wrote it; empty for a guest.
+  senderId       Int?       @map("sender_id")
+  // A message may be only an attachment, so the text is optional.
+  body           String?
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  conversation SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?               @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  attachments  SupportAttachment[]
+
+  @@index([conversationId, createdAt])
+  @@map("support_messages")
+}
+
+// A file sent in the chat: PDF, image or video, at most 25 MB (requirement 13). The file itself
+// lives in storage; this row keeps where it is and what it is.
+model SupportAttachment {
+  id          Int      @id @default(autoincrement())
+  messageId   Int      @map("message_id")
+  fileName    String   @map("file_name")
+  mimeType    String   @map("mime_type")
+  sizeBytes   Int      @map("size_bytes")
+  storagePath String   @map("storage_path")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  message SupportMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("support_attachments")
 }

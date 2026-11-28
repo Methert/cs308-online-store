@@ -405,3 +405,115 @@ test('deleting a user also clears their wish list', async () => {
   const { rows } = await db.query(`SELECT count(*)::int AS n FROM wish_list_items`);
   assert.equal(rows[0].n, 0);
 });
+
+// Requirement 11: discounts
+
+test('a card has no discount unless one is set', async () => {
+  const { rows } = await db.query(`SELECT discount_percent FROM products WHERE id = 1`);
+  assert.equal(rows[0].discount_percent, 0);
+});
+
+test('a discount is between 0 and 90 percent', async () => {
+  await db.exec(`UPDATE products SET discount_percent = 90 WHERE id = 1`);
+  await assertRejected(`UPDATE products SET discount_percent = 91 WHERE id = 1`, 'products_discount_percent_check');
+  await assertRejected(`UPDATE products SET discount_percent = -5 WHERE id = 1`, 'products_discount_percent_check');
+});
+
+// Requirement 13: support chat
+
+async function addSupportAgent() {
+  await db.exec(
+    `INSERT INTO users (name, email, password_hash, role, updated_at) VALUES ('Joy', 'joy@example.com', 'hash', 'support_agent', now())`,
+  );
+  return 3;
+}
+
+test('a guest chat waits in the queue until an agent claims it', async () => {
+  const agent = await addSupportAgent();
+  await db.exec(
+    `INSERT INTO support_conversations (guest_token, guest_name, updated_at) VALUES ('guest-123', 'Misty', now())`,
+  );
+  const { rows } = await db.query(`SELECT status, agent_id FROM support_conversations`);
+  assert.deepEqual(rows, [{ status: 'waiting', agent_id: null }]);
+  await db.exec(
+    `UPDATE support_conversations SET status = 'active', agent_id = ${agent}, claimed_at = now() WHERE id = 1`,
+  );
+});
+
+test('a chat belongs to a customer or a guest', async () => {
+  await assertRejected(
+    `INSERT INTO support_conversations (updated_at) VALUES (now())`,
+    'support_conversations_owner_check',
+  );
+});
+
+test('an active chat must have been claimed', async () => {
+  await db.exec(`INSERT INTO support_conversations (customer_id, updated_at) VALUES (1, now())`);
+  await assertRejected(
+    `UPDATE support_conversations SET status = 'active' WHERE id = 1`,
+    'support_conversations_claim_check',
+  );
+});
+
+test('a waiting chat has no agent', async () => {
+  const agent = await addSupportAgent();
+  await assertRejected(
+    `INSERT INTO support_conversations (customer_id, agent_id, updated_at) VALUES (1, ${agent}, now())`,
+    'support_conversations_claim_check',
+  );
+});
+
+test('a closed chat records when it was closed', async () => {
+  const agent = await addSupportAgent();
+  await db.exec(
+    `INSERT INTO support_conversations (customer_id, status, agent_id, claimed_at, updated_at) VALUES (1, 'active', ${agent}, now(), now())`,
+  );
+  await assertRejected(
+    `UPDATE support_conversations SET status = 'closed' WHERE id = 1`,
+    'support_conversations_closed_check',
+  );
+  await db.exec(`UPDATE support_conversations SET status = 'closed', closed_at = now() WHERE id = 1`);
+});
+
+test('a chat message cannot be blank text', async () => {
+  await db.exec(`INSERT INTO support_conversations (customer_id, updated_at) VALUES (1, now())`);
+  await assertRejected(
+    `INSERT INTO support_messages (conversation_id, sender_type, sender_id, body) VALUES (1, 'customer', 1, '   ')`,
+    'support_messages_body_check',
+  );
+  await db.exec(
+    `INSERT INTO support_messages (conversation_id, sender_type, sender_id, body) VALUES (1, 'customer', 1, NULL)`,
+  );
+});
+
+test('attachments are PDF, image or video files up to 25 MB', async () => {
+  await db.exec(`
+    INSERT INTO support_conversations (customer_id, updated_at) VALUES (1, now());
+    INSERT INTO support_messages (conversation_id, sender_type, sender_id) VALUES (1, 'customer', 1);
+    INSERT INTO support_attachments (message_id, file_name, mime_type, size_bytes, storage_path) VALUES
+      (1, 'receipt.pdf', 'application/pdf', 1000, 'chat/1/receipt.pdf'),
+      (1, 'card.jpg', 'image/jpeg', 2000, 'chat/1/card.jpg'),
+      (1, 'unboxing.mp4', 'video/mp4', 26214400, 'chat/1/unboxing.mp4');
+  `);
+  await assertRejected(
+    `INSERT INTO support_attachments (message_id, file_name, mime_type, size_bytes, storage_path) VALUES (1, 'run.exe', 'application/x-msdownload', 10, 'x')`,
+    'support_attachments_mime_type_check',
+  );
+  await assertRejected(
+    `INSERT INTO support_attachments (message_id, file_name, mime_type, size_bytes, storage_path) VALUES (1, 'big.mp4', 'video/mp4', 26214401, 'x')`,
+    'support_attachments_size_bytes_check',
+  );
+});
+
+test('deleting a chat removes its messages and attachments', async () => {
+  await db.exec(`
+    INSERT INTO support_conversations (customer_id, updated_at) VALUES (1, now());
+    INSERT INTO support_messages (conversation_id, sender_type, sender_id, body) VALUES (1, 'customer', 1, 'Hi');
+    INSERT INTO support_attachments (message_id, file_name, mime_type, size_bytes, storage_path) VALUES (1, 'a.png', 'image/png', 10, 'x');
+    DELETE FROM support_conversations WHERE id = 1;
+  `);
+  const { rows } = await db.query(
+    `SELECT (SELECT count(*) FROM support_messages)::int AS m, (SELECT count(*) FROM support_attachments)::int AS a`,
+  );
+  assert.deepEqual(rows, [{ m: 0, a: 0 }]);
+});
