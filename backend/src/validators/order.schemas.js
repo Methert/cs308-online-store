@@ -76,8 +76,30 @@ const placeOrderSchema = z.object({
   ),
 });
 
+// POST /api/orders/:id/return  (requirement 16: returns are selective)
+// items: which order lines and how many cards of each. Without items, every card on the order
+// that has not been returned yet is requested.
+const returnRequestSchema = z.object({
+  reason: z.string().trim().max(500, 'reason is too long').optional(),
+  items: z
+    .array(
+      z.object({
+        orderItemId: z.number({ error: 'items[].orderItemId must be a number' }).int().positive(),
+        quantity: z
+          .number({ error: 'items[].quantity must be a number' })
+          .int()
+          .min(1, 'items[].quantity must be at least 1')
+          .max(MAX_CART_QUANTITY),
+      }),
+      { error: 'items must be a list' },
+    )
+    .min(1, 'items must not be empty')
+    .optional(),
+});
+
 module.exports = {
   MAX_CART_QUANTITY,
+  returnRequestSchema,
   addCartItemSchema,
   updateCartItemSchema,
   mergeCartSchema,

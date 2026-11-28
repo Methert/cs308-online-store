@@ -29,8 +29,8 @@ function createInvoiceService({ prisma }) {
       select: { email: true, name: true },
     });
 
-    if (user?.email) {
-      await sendEmail({ user, order, invoice, pdfBuffer });
+    // emailedAt is set only when a mail really went out (no SMTP settings = no mail).
+    if (user?.email && (await sendEmail({ user, order, invoice, pdfBuffer }))) {
       await prisma.invoice.update({
         where: { id: invoice.id },
         data:  { emailedAt: new Date() },
@@ -83,7 +83,7 @@ async function buildPdf(order, invoiceNumber) {
 
 async function sendEmail({ user, order, invoice, pdfBuffer }) {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
-  if (!SMTP_HOST) return; // not configured; skip silently
+  if (!SMTP_HOST) return false; // not configured; skip silently
 
   const nodemailer  = require('nodemailer');
   const transporter = nodemailer.createTransport({
@@ -115,6 +115,7 @@ async function sendEmail({ user, order, invoice, pdfBuffer }) {
       },
     ],
   });
+  return true;
 }
 
 module.exports = { createInvoiceService };

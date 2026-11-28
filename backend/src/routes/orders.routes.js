@@ -20,7 +20,7 @@ const { createInvoiceService } = require('../services/invoice.service');
 // Shared validation, same as every other route (added by Berat for consistent API errors).
 const { validateBody }      = require('../middleware/validateBody');
 const { parseId }           = require('../validators/common');
-const { placeOrderSchema }  = require('../validators/order.schemas');
+const { placeOrderSchema, returnRequestSchema } = require('../validators/order.schemas');
 
 // Same test cards the frontend checkout page declines (req. 15).
 const DECLINED_CARDS = {
@@ -210,9 +210,9 @@ function createOrderRouter({ prisma, authenticate, requireRole, config }) {
   // POST /api/orders/:id/return  – within 30 days of delivery (req. 16)
   // Creates one return_requests row per order item (quantity × unit price = refund amount).
   // The sales manager reviews each request and approves the refund separately.
-  router.post('/:id/return', async (req, res) => {
+  router.post('/:id/return', validateBody(returnRequestSchema), async (req, res) => {
     const id     = parseOrderId(req.params.id);
-    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() || null : null;
+    const reason = req.body.reason || null;
 
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order || order.userId !== req.user.id) throw new AppError(404, 'Order not found');
@@ -223,21 +223,66 @@ function createOrderRouter({ prisma, authenticate, requireRole, config }) {
       throw new AppError(409, 'Return window of 30 days has passed');
     }
 
-    const items = await prisma.orderItem.findMany({ where: { orderId: id } });
+    const requests = await prisma.$transaction(async (tx) => {
+      // Lock this order's lines so two return requests for the same cards cannot both pass the
+      // "not more than was bought" check below.
+      await tx.$queryRaw`SELECT id FROM order_items WHERE order_id = ${id} FOR UPDATE`;
+      const lines = await tx.orderItem.findMany({
+        where:   { orderId: id },
+        include: { returnRequests: { where: { status: { in: ['requested', 'approved'] } } } },
+      });
+      // How many cards of each line can still be returned.
+      const returnable = new Map(
+        lines.map((line) => [
+          line.id,
+          { line, left: line.quantity - line.returnRequests.reduce((sum, r) => sum + r.quantity, 0) },
+        ]),
+      );
 
-    for (const item of items) {
-      const refundAmount = Number(item.unitPrice) * item.quantity;
-      await prisma.$executeRaw`
-        INSERT INTO return_requests
-          (order_item_id, user_id, quantity, reason, status, refund_amount, created_at)
-        VALUES
-          (${item.id}, ${req.user.id}, ${item.quantity}, ${reason},
-           'requested'::return_status, ${refundAmount}, NOW())
-      `;
-    }
+      // Selective return: the lines and quantities the customer chose, or everything left.
+      const wanted = req.body.items
+        ?? [...returnable.values()]
+          .filter(({ left }) => left > 0)
+          .map(({ line, left }) => ({ orderItemId: line.id, quantity: left }));
+      if (wanted.length === 0) {
+        throw new AppError(409, 'Every card on this order is already being returned');
+      }
 
+      const seen = new Set();
+      for (const { orderItemId, quantity } of wanted) {
+        const entry = returnable.get(orderItemId);
+        if (!entry) throw new AppError(400, `Order item ${orderItemId} is not on this order`);
+        if (seen.has(orderItemId)) throw new AppError(400, `Order item ${orderItemId} is listed twice`);
+        seen.add(orderItemId);
+        if (quantity > entry.left) {
+          throw new AppError(409, `Only ${entry.left} of order item ${orderItemId} can still be returned`);
+        }
+      }
+
+      const created = [];
+      for (const { orderItemId, quantity } of wanted) {
+        created.push(
+          await tx.returnRequest.create({
+            data: {
+              orderItemId,
+              userId: req.user.id,
+              quantity,
+              reason,
+              // The price actually paid, so later price changes or discounts do not matter.
+              refundAmount: Number(returnable.get(orderItemId).line.unitPrice) * quantity,
+            },
+          }),
+        );
+      }
+      return created;
+    });
+
+    // TODO: notify the sales manager by email (req. 16)
     res.status(202).json({
-      data: { message: 'Return request received. The sales manager will review it shortly.' },
+      data: {
+        message: 'Return request received. The sales manager will review it shortly.',
+        returnRequests: requests,
+      },
     });
   });
 

@@ -45,6 +45,7 @@ async function main() {
     ...process.env,
     DATABASE_URL: databaseUrl,
     JWT_SECRET: process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex'),
+    CARD_HMAC_SECRET: process.env.CARD_HMAC_SECRET || crypto.randomBytes(32).toString('hex'),
   });
   const prisma = await createPrismaClient({ databaseUrl });
   const app = createApp({
