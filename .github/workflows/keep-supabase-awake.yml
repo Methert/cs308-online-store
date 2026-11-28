@@ -1,10 +1,12 @@
 name: Keep Supabase awake
 
 # Supabase pauses free projects after 7 days without activity. This job runs one tiny query
-# twice a week so the dev database stays up for the demos.
+# on the dev and the demo database twice a week so both stay up for the demos.
 # Setup (once, by the repository owner): Settings -> Secrets and variables -> Actions ->
-# New repository secret, name SUPABASE_DB_URL, value = the DIRECT_URL from backend/.env
-# (not DATABASE_URL: psql rejects its "?pgbouncer=true").
+# New repository secret, one per database:
+#   SUPABASE_DB_URL       = DIRECT_URL from backend/.env       (dev project)
+#   SUPABASE_DEMO_DB_URL  = DIRECT_URL from backend/.env.demo  (demo project)
+# Use DIRECT_URL, not DATABASE_URL: psql rejects its "?pgbouncer=true".
 # Scheduled jobs only run from the default branch (dev). Run it by hand from the Actions tab.
 
 on:
@@ -19,15 +21,24 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false # one database being down must not stop the other ping
+      matrix:
+        include:
+          - database: dev
+            secret: SUPABASE_DB_URL
+          - database: demo
+            secret: SUPABASE_DEMO_DB_URL
+    name: ping ${{ matrix.database }}
     steps:
-      - name: Query the database
+      - name: Query the ${{ matrix.database }} database
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DB_URL: ${{ secrets[matrix.secret] }}
         run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::The SUPABASE_DB_URL secret is not set (see the comment at the top of this file)."
+          if [ -z "$DB_URL" ]; then
+            echo "::error::The ${{ matrix.secret }} secret is not set (see the comment at the top of this file)."
             exit 1
           fi
           sudo apt-get install -y -qq postgresql-client > /dev/null
-          result=$(psql "$SUPABASE_DB_URL" -tAc 'SELECT count(*) FROM products')
-          echo "Database is up: $result products."
+          result=$(psql "$DB_URL" -tAc 'SELECT count(*) FROM products')
+          echo "${{ matrix.database }} database is up: $result products."
