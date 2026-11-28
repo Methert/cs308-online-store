@@ -197,3 +197,35 @@ Content-Type: application/json
 {
   "status": "in_transit"
 }
+
+### ---------------------------------------------------------------------------
+### Reviews (requirement 5). Log in as the customer first ("Log in" above uses the seed
+### customer when you change the email and password to customer@pokeshop.test / Customer123).
+### ---------------------------------------------------------------------------
+
+### Ratings and approved comments of a card (public)
+GET {{base}}/reviews/product/1
+
+### Rate and comment on a delivered order line (orderItemId from GET /orders)
+POST {{base}}/reviews
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "orderItemId": 1,
+  "rating": 4,
+  "comment": "Card arrived exactly as described."
+}
+
+### Comments waiting for approval (product manager)
+GET {{base}}/reviews/moderation/pending
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+
+### Approve (or "rejected") a comment by review id (product manager)
+PATCH {{base}}/reviews/1/moderate
+Authorization: Bearer {{pmLogin.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "decision": "approved"
+}

@@ -94,6 +94,19 @@ The schema is in [prisma/schema.prisma](prisma/schema.prisma) and is owned by Ah
 - `return_requests`: one row per return request on an order line. Returns are selective, so a line can have several requests for part of its quantity. `refund_amount` is set when the request is made (quantity × `order_items.unit_price`, the price actually paid). `status` is `requested`, `approved` or `rejected`; a decided request must have `reviewed_at` (and normally `reviewed_by`, the sales manager). The API checks the 30-day window, that the order was delivered and that requests never add up to more than was bought; on approval it restores stock in the same transaction.
 - `wish_list_items`: (user, product) pairs, at most once each. Used to notify users when the sales manager discounts a card.
 
+### Discounts
+
+- `products.discount_percent`: whole percent from 0 (no discount) to 90, set by the sales manager (requirement 11).
+- The customer pays `round(price × (100 − discount_percent) / 100, 2)`. When an order is placed, store that discounted price in `order_items.unit_price`: refunds (requirement 16) and revenue use it.
+- Telling wish-list users about a new discount is done by the discount API: `wish_list_items` has the users for each card.
+
+### Support chat tables
+
+- `support_conversations`: one chat with a signed-in customer (`customer_id`, so the agent can see their orders) or a guest (`guest_token` kept by the browser, optional `guest_name`). `status` is `waiting` (in the queue, no agent), `active` (claimed: `agent_id`, `claimed_at`) or `closed` (`closed_at`). The queue is the waiting chats, oldest first (indexed). The API should keep one open chat per customer or guest token.
+- `support_messages`: `sender_type` is `customer` or `agent`; `sender_id` is empty for a guest. `body` may be empty when the message only carries a file.
+- `support_attachments`: file name, type, size and storage path. Only PDF, JPEG/PNG/GIF/WebP images and MP4/WebM/QuickTime videos, up to 25 MB. Store the files outside git, like the invoice PDFs.
+- Deleting a chat deletes its messages and files; deleting a customer deletes their chats.
+
 ### Concurrency check
 
 `npm run test:concurrency` makes 5 customers order the last copy of a card at the same moment through the real `POST /api/orders`, 3 rounds. Exactly one may succeed, the rest must get 409, and stock must end at 0. It needs a throwaway PostgreSQL (it leaves test data behind and only accepts a localhost URL), for example with Docker:
